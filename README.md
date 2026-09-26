@@ -2,6 +2,12 @@
 
 Portfolio project for designing and implementing an internal meeting room booking system.
 
+## Documentation
+
+Full system analysis documentation is maintained in Confluence:
+
+[Meeting Room Booking System — Confluence](https://nickmartirosian.atlassian.net/wiki/spaces/~7120203dbcadf5228842f2977d66dce65736de/pages/458753/Meeting+Room+Booking+System)
+
 The system allows employees to find available meeting rooms, create and manage bookings, while administrators can manage rooms, offices and bookings.
 
 ## Project Goal
