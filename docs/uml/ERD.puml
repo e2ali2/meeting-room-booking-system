@@ -1,0 +1,89 @@
+@startuml
+
+title Meeting Room Booking — ERD
+
+hide methods
+hide stereotypes
+
+entity "users" as users {
+    * user_id : UUID <<PK>>
+    --
+    employee_id : VARCHAR <<UNIQUE>>
+    name : VARCHAR
+    email : VARCHAR <<UNIQUE>>
+    role : VARCHAR
+    status : VARCHAR
+    created_at : TIMESTAMP
+}
+
+entity "offices" as offices {
+    * office_id : UUID <<PK>>
+    --
+    name : VARCHAR
+    address : VARCHAR
+    status : VARCHAR
+}
+
+entity "rooms" as rooms {
+    * room_id : UUID <<PK>>
+    --
+    office_id : UUID <<FK>>
+    name : VARCHAR
+    floor : INTEGER
+    capacity : INTEGER
+    status : VARCHAR
+    photo_url : VARCHAR
+}
+entity "bookings" as bookings {
+    * booking_id : UUID <<PK>>
+    --
+    user_id : UUID <<FK>>
+    room_id : UUID <<FK>>
+    start_time : TIMESTAMP
+    end_time : TIMESTAMP
+    status : VARCHAR
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+    cancelled_at : TIMESTAMP <<NULL>>
+    cancelled_by : UUID <<FK, NULL>>
+}
+entity "equipment" as equipment {
+    * equipment_id : UUID <<PK>>
+    --
+    name : VARCHAR <<UNIQUE>>
+}
+
+entity "room_equipment" as room_equipment {
+    * room_id : UUID <<PK, FK>>
+    * equipment_id : UUID <<PK, FK>>
+}
+entity "audit_log" as audit_log {
+    * audit_id : UUID <<PK>>
+    --
+    actor_user_id : UUID <<FK>>
+    booking_id : UUID <<FK, NULL>>
+    action : VARCHAR
+    details : JSONB
+    created_at : TIMESTAMP
+}
+
+entity "outbox_events" as outbox_events {
+    * event_id : UUID <<PK>>
+    --
+    aggregate_type : VARCHAR
+    aggregate_id : UUID
+    event_type : VARCHAR
+    payload : JSONB
+    status : VARCHAR
+    retry_count : INTEGER
+    created_at : TIMESTAMP
+    published_at : TIMESTAMP <<NULL>>
+}
+users ||--o{ audit_log : performs
+bookings ||--o{ audit_log : audited in
+rooms ||--o{ room_equipment : has
+equipment ||--o{ room_equipment : assigned to
+offices ||--o{ rooms : contains
+users ||--o{ bookings : creates
+rooms ||--o{ bookings : reserved for
+@enduml

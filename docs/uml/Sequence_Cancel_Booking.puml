@@ -1,0 +1,28 @@
+@startuml
+
+title Cancel Booking — Sequence Diagram
+
+actor Employee
+participant Frontend
+participant "Booking Service" as BookingService
+database PostgreSQL
+Employee -> Frontend : Open booking
+Frontend -> BookingService : GET /bookings/{id}
+BookingService -> PostgreSQL : Get booking
+PostgreSQL --> BookingService : Booking data
+BookingService --> Frontend : 200 OK + booking data
+
+Employee -> Frontend : Cancel booking
+Frontend -> BookingService : PATCH /bookings/{id}\nstatus=CANCELLED
+BookingService -> BookingService : Check cancellation rights\nand 30-minute rule
+alt Cancellation is allowed
+    BookingService -> PostgreSQL : Set status = CANCELLED\nSave cancelled_at and cancelled_by\nCreate outbox event
+    PostgreSQL --> BookingService : Transaction committed
+    BookingService --> Frontend : 200 OK
+    Frontend --> Employee : Show cancellation success
+
+else Cancellation is not allowed
+    BookingService --> Frontend : 409 Conflict\nBOOKING_CANCELLATION_TOO_LATE
+    Frontend --> Employee : Show cancellation error
+end
+@enduml

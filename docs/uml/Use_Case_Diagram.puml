@@ -1,0 +1,37 @@
+@startuml
+
+left to right direction
+
+actor Employee
+actor Admin
+Admin --|> Employee
+rectangle "Meeting Room Booking System" {
+
+  usecase "Search Available Rooms" as UC_Search
+  usecase "Create Booking" as UC_Create
+  usecase "View My Bookings" as UC_View
+  usecase "Modify Booking" as UC_Modify
+  usecase "Cancel Booking" as UC_Cancel
+usecase "Manage Offices" as UC_Offices
+usecase "Manage Rooms" as UC_Rooms
+usecase "Manage Equipment" as UC_Equipment
+usecase "View All Bookings" as UC_AllBookings
+usecase "Manage Any Booking" as UC_ManageBooking
+usecase "View Analytics" as UC_Analytics
+Employee --> UC_Search
+Employee --> UC_Create
+Employee --> UC_View
+Employee --> UC_Modify
+Employee --> UC_Cancel
+Admin --> UC_Offices
+Admin --> UC_Rooms
+Admin --> UC_Equipment
+Admin --> UC_AllBookings
+Admin --> UC_ManageBooking
+Admin --> UC_Analytics
+usecase "Check Room Availability" as UC_CheckAvailability
+usecase "Check Modification Availability" as UC_CheckModification
+UC_Create ..> UC_CheckAvailability : <<include>>
+UC_Modify ..> UC_CheckModification : <<include>>
+}
+@enduml

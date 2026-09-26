@@ -1,0 +1,43 @@
+@startuml
+
+title Create Booking — Sequence Diagram
+
+actor Employee
+participant Frontend
+participant "Booking Service" as BookingService
+database PostgreSQL
+participant "Outbox Publisher" as OutboxPublisher
+queue RabbitMQ
+participant "Email Service" as EmailService
+Employee -> Frontend : Enter booking parameters
+Frontend -> BookingService : POST /bookings
+BookingService -> PostgreSQL : Check room availability
+PostgreSQL --> BookingService : Room is available
+BookingService -> BookingService : Validate business rules
+alt Room is available and rules are valid
+    BookingService -> PostgreSQL : Create booking + outbox event
+    PostgreSQL --> BookingService : Transaction committed
+    BookingService --> Frontend : 201 Created
+    Frontend --> Employee : Show booking success
+else Room is no longer available
+    BookingService --> Frontend : 409 Conflict\nROOM_ALREADY_BOOKED
+    Frontend --> Employee : Show conflict message
+end
+== Async notification ==
+
+OutboxPublisher -> PostgreSQL : Read unpublished events
+PostgreSQL --> OutboxPublisher : BookingCreated event
+
+OutboxPublisher ->> RabbitMQ : Publish BookingCreated
+RabbitMQ ->> EmailService : Deliver BookingCreated
+
+EmailService -> EmailService : Send booking email
+alt Email sent successfully
+    EmailService -> EmailService : Mark event as processed
+else Email sending failed
+    loop Retry up to N attempts
+        EmailService -> EmailService : Retry sending email
+    end
+    EmailService ->> RabbitMQ : Move message to DLQ
+end
+@enduml

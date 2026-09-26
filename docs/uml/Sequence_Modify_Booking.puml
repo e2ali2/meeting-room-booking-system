@@ -1,0 +1,37 @@
+@startuml
+
+title Modify Booking — Sequence Diagram
+
+actor Employee
+participant Frontend
+participant "Booking Service" as BookingService
+database PostgreSQL
+Employee -> Frontend : Open booking
+Frontend -> BookingService : GET /bookings/{id}
+BookingService -> PostgreSQL : Get booking
+PostgreSQL --> BookingService : Booking data
+BookingService --> Frontend : 200 OK + booking data
+
+Employee -> Frontend : Enter new time or room
+Frontend -> BookingService : PATCH /bookings/{id}
+BookingService -> BookingService : Check modification rights\nand 30-minute rule
+alt Modification is allowed
+    BookingService -> PostgreSQL : Check new room availability
+    PostgreSQL --> BookingService : Room is available
+    BookingService -> BookingService : Validate business rules
+
+    alt New slot is available
+        BookingService -> PostgreSQL : Update booking + create outbox event
+        PostgreSQL --> BookingService : Transaction committed
+        BookingService --> Frontend : 200 OK
+        Frontend --> Employee : Show modification success
+    else New slot is occupied
+        BookingService --> Frontend : 409 Conflict\nROOM_ALREADY_BOOKED
+        Frontend --> Employee : Show conflict message\nOriginal booking unchanged
+    end
+
+else Modification is not allowed
+    BookingService --> Frontend : 409 Conflict\nBOOKING_MODIFICATION_TOO_LATE
+    Frontend --> Employee : Show modification error
+end
+@enduml
