@@ -1,0 +1,1104 @@
+openapi: 3.0.3
+
+info:
+  title: Meeting Room Booking System API
+  version: 1.0.0
+  description: API for searching meeting rooms and managing bookings.
+
+servers:
+  - url: http://localhost:8000/api/v1
+
+tags:
+  - name: Offices
+  - name: Rooms
+  - name: Equipment
+  - name: Bookings
+  - name: Admin
+
+paths:
+
+  /offices:
+    get:
+      tags:
+        - Offices
+      summary: Get active offices
+      description: Returns the list of active offices available for booking.
+      responses:
+        '200':
+          description: List of offices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  offices:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Office'
+
+  /equipment:
+    get:
+      tags:
+        - Equipment
+      summary: Get equipment
+      description: Returns the list of available equipment types.
+      responses:
+        '200':
+          description: List of equipment
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  equipment:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Equipment'
+
+  /rooms:
+    get:
+      tags:
+        - Rooms
+      summary: Get rooms
+      description: Returns rooms for the selected office.
+      parameters:
+        - name: office_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of rooms
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rooms:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Room'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /rooms/available:
+    get:
+      tags:
+        - Rooms
+      summary: Search available rooms
+      description: Returns active rooms available for the selected time interval and matching the specified filters.
+      parameters:
+        - name: office_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+
+        - name: start_time
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+
+        - name: end_time
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+
+        - name: min_capacity
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+
+        - name: equipment
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+
+      responses:
+        '200':
+          description: List of available rooms
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rooms:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Room'
+
+        '400':
+          description: Invalid search parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /bookings:
+    post:
+      tags:
+        - Bookings
+      summary: Create booking
+      description: Creates a new meeting room booking for the authenticated user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+      responses:
+        '201':
+          description: Booking created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+
+        '400':
+          description: Invalid booking parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '401':
+          description: User is not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '409':
+          description: Booking conflict or business rule violation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /bookings/my:
+    get:
+      tags:
+        - Bookings
+      summary: Get my bookings
+      description: Returns bookings of the authenticated user.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - ACTIVE
+              - CANCELLED
+              - COMPLETED
+      responses:
+        '200':
+          description: List of user bookings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bookings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Booking'
+
+        '401':
+          description: User is not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /bookings/{booking_id}:
+    parameters:
+      - name: booking_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      tags:
+        - Bookings
+      summary: Get booking
+      description: Returns a specific booking of the authenticated user.
+      responses:
+        '200':
+          description: Booking found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+
+        '401':
+          description: User is not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: User is not allowed to view this booking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      tags:
+        - Bookings
+      summary: Modify booking
+      description: Modifies an active booking owned by the authenticated user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBookingRequest'
+      responses:
+        '200':
+          description: Booking updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+
+        '400':
+          description: Invalid booking parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '401':
+          description: User is not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: User is not allowed to modify this booking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '409':
+          description: Booking conflict or modification is no longer allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /bookings/{booking_id}/cancel:
+    parameters:
+      - name: booking_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    post:
+      tags:
+        - Bookings
+      summary: Cancel booking
+      description: Cancels an active booking owned by the authenticated user.
+      responses:
+        '200':
+          description: Booking cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+
+        '401':
+          description: User is not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: User is not allowed to cancel this booking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '409':
+          description: Booking cancellation is no longer allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/bookings:
+    get:
+      tags:
+        - Admin
+      summary: Get all bookings
+      description: Returns bookings for administrators with optional filters.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - ACTIVE
+              - CANCELLED
+              - COMPLETED
+
+        - name: office_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+
+      responses:
+        '200':
+          description: List of bookings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bookings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Booking'
+
+        '401':
+          description: User is not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: Administrator role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/bookings/{booking_id}:
+    parameters:
+      - name: booking_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    patch:
+      tags:
+        - Admin
+      summary: Modify any booking
+      description: Allows an administrator to modify an active booking.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBookingRequest'
+      responses:
+        '200':
+          description: Booking updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+
+        '400':
+          description: Invalid booking parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '401':
+          description: User is not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: Administrator role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '409':
+          description: Booking conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/bookings/{booking_id}/cancel:
+    parameters:
+      - name: booking_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    post:
+      tags:
+        - Admin
+      summary: Cancel any booking
+      description: Allows an administrator to cancel an active booking at any time.
+      responses:
+        '200':
+          description: Booking cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+
+        '401':
+          description: User is not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: Administrator role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/offices:
+    post:
+      tags:
+        - Admin
+      summary: Create office
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOfficeRequest'
+      responses:
+        '201':
+          description: Office created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Office'
+
+        '400':
+          description: Invalid office data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '401':
+          description: User is not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: Administrator role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/offices/{office_id}:
+    parameters:
+      - name: office_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    patch:
+      tags:
+        - Admin
+      summary: Update office
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOfficeRequest'
+      responses:
+        '200':
+          description: Office updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Office'
+
+        '400':
+          description: Invalid office data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '401':
+          description: User is not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: Administrator role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          description: Office not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/rooms:
+    post:
+      tags:
+        - Admin
+      summary: Create room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoomRequest'
+      responses:
+        '201':
+          description: Room created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+
+        '400':
+          description: Invalid room data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '401':
+          description: User is not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: Administrator role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/rooms/{room_id}:
+    parameters:
+      - name: room_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    patch:
+      tags:
+        - Admin
+      summary: Update room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRoomRequest'
+      responses:
+        '200':
+          description: Room updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+
+        '400':
+          description: Invalid room data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '401':
+          description: User is not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: Administrator role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/equipment:
+    post:
+      tags:
+        - Admin
+      summary: Create equipment type
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEquipmentRequest'
+      responses:
+        '201':
+          description: Equipment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipment'
+
+        '400':
+          description: Invalid equipment data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '401':
+          description: User is not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: Administrator role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/analytics/bookings:
+    get:
+      tags:
+        - Admin
+      summary: Get booking analytics
+      parameters:
+        - name: date_from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+
+        - name: date_to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+
+      responses:
+        '200':
+          description: Booking analytics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingAnalytics'
+
+        '400':
+          description: Invalid date range
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '401':
+          description: User is not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '403':
+          description: Administrator role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+
+components:
+  schemas:
+
+    Office:
+      type: object
+      required:
+        - office_id
+        - name
+        - address
+        - status
+      properties:
+        office_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Moscow Central Office
+        address:
+          type: string
+          example: Moscow, Presnenskaya Embankment, 10
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+
+    Equipment:
+      type: object
+      required:
+        - equipment_id
+        - name
+      properties:
+        equipment_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Videoconference
+
+    Room:
+      type: object
+      required:
+        - room_id
+        - office_id
+        - name
+        - floor
+        - capacity
+        - status
+        - equipment
+      properties:
+        room_id:
+          type: string
+          format: uuid
+        office_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Orion
+        floor:
+          type: integer
+          example: 5
+        capacity:
+          type: integer
+          minimum: 1
+          example: 8
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+        photo_url:
+          type: string
+          format: uri
+          nullable: true
+        equipment:
+          type: array
+          items:
+            $ref: '#/components/schemas/Equipment'
+
+    Booking:
+      type: object
+      required:
+        - booking_id
+        - room_id
+        - start_time
+        - end_time
+        - status
+        - created_at
+      properties:
+        booking_id:
+          type: string
+          format: uuid
+        room_id:
+          type: string
+          format: uuid
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - CANCELLED
+            - COMPLETED
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        cancelled_at:
+          type: string
+          format: date-time
+          nullable: true
+        cancelled_by:
+          type: string
+          format: uuid
+          nullable: true
+
+    CreateBookingRequest:
+      type: object
+      required:
+        - room_id
+        - start_time
+        - end_time
+      properties:
+        room_id:
+          type: string
+          format: uuid
+        start_time:
+          type: string
+          format: date-time
+          example: '2026-10-01T10:00:00+03:00'
+        end_time:
+          type: string
+          format: date-time
+          example: '2026-10-01T11:00:00+03:00'
+
+    UpdateBookingRequest:
+      type: object
+      minProperties: 1
+      properties:
+        room_id:
+          type: string
+          format: uuid
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+
+    CreateOfficeRequest:
+      type: object
+      required:
+        - name
+        - address
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+
+    UpdateOfficeRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+
+    CreateRoomRequest:
+      type: object
+      required:
+        - office_id
+        - name
+        - floor
+        - capacity
+      properties:
+        office_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        floor:
+          type: integer
+        capacity:
+          type: integer
+          minimum: 1
+        equipment_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        photo_url:
+          type: string
+          format: uri
+          nullable: true
+
+    UpdateRoomRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: string
+        floor:
+          type: integer
+        capacity:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+        equipment_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        photo_url:
+          type: string
+          format: uri
+          nullable: true
+
+    CreateEquipmentRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: Videoconference
+
+    BookingAnalytics:
+      type: object
+      required:
+        - total_bookings
+        - cancelled_bookings
+        - room_utilization
+      properties:
+        total_bookings:
+          type: integer
+          example: 482
+        cancelled_bookings:
+          type: integer
+          example: 37
+        room_utilization:
+          type: array
+          items:
+            type: object
+            properties:
+              room_id:
+                type: string
+                format: uuid
+              room_name:
+                type: string
+              booking_count:
+                type: integer
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: ROOM_ALREADY_BOOKED
+        message:
+          type: string
+          example: Room is already booked for the selected time
