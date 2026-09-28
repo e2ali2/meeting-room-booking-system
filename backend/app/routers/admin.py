@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.routers.bookings import validate_booking_time
 from app.models import AuditLog, Booking, Equipment, Office, Room, User
 from app.schemas import (
     CreateEquipmentRequest,
@@ -100,7 +101,14 @@ def update_booking(
                 "message": "Booking not found",
             },
         )
-
+    if booking.status != "ACTIVE":
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "BOOKING_NOT_ACTIVE",
+                "message": "Booking is not active",
+            },
+        )
     if request.room_id is not None:
         room = db.get(Room, request.room_id)
 
@@ -137,14 +145,7 @@ def update_booking(
     new_start = request.start_time or booking.start_time
     new_end = request.end_time or booking.end_time
 
-    if new_end <= new_start:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "code": "INVALID_BOOKING_TIME",
-                "message": "End time must be later than start time",
-            },
-        )
+    validate_booking_time(new_start, new_end)
 
     conflict = db.execute(
         select(Booking).where(
@@ -362,6 +363,15 @@ def create_equipment(
     equipment = Equipment(name=request.name)
 
     db.add(equipment)
+    db.flush()
+
+    write_audit(
+        db,
+        admin,
+        "ADMIN_EQUIPMENT_CREATED",
+        details={"equipment_id": str(equipment.equipment_id)},
+    )
+
     db.commit()
     db.refresh(equipment)
 

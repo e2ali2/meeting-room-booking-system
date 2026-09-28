@@ -60,7 +60,7 @@ def validate_booking_time(start_time: datetime, end_time: datetime):
             "message": "Booking cannot cross a calendar day",
         })
 
-    if start_time > now + timedelta(days=30):
+    if end_time > now + timedelta(days=30):
         raise HTTPException(status_code=400, detail={
             "code": "INVALID_BOOKING_TIME",
             "message": "Booking cannot be created more than 30 days ahead",
@@ -221,7 +221,11 @@ def update_booking(
             "code": "FORBIDDEN",
             "message": "Access denied",
         })
-
+    if booking.status != "ACTIVE":
+        raise HTTPException(status_code=409, detail={
+            "code": "BOOKING_NOT_ACTIVE",
+            "message": "Booking is not active",
+        })
     now = datetime.now(timezone.utc)
 
     if booking.start_time - now < timedelta(minutes=30):
