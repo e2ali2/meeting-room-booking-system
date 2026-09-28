@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.routers import bookings, equipment, offices, rooms
+from app.routers import admin, bookings, equipment, offices, rooms
 
 
 app = FastAPI(
@@ -18,3 +18,4 @@ app.include_router(offices.router)
 app.include_router(equipment.router)
 app.include_router(rooms.router)
 app.include_router(bookings.router)
+app.include_router(admin.router)

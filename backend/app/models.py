@@ -40,7 +40,9 @@ class Office(Base):
     __tablename__ = "offices"
 
     office_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()")
     )
     name: Mapped[str] = mapped_column(
         String(255), unique=True, nullable=False
@@ -57,7 +59,9 @@ class Room(Base):
     __tablename__ = "rooms"
 
     room_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()")
     )
     office_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -85,7 +89,9 @@ class Equipment(Base):
     __tablename__ = "equipment"
 
     equipment_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()")
     )
     name: Mapped[str] = mapped_column(
         String(255), unique=True, nullable=False
@@ -154,7 +160,9 @@ class AuditLog(Base):
     __tablename__ = "audit_log"
 
     audit_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()")
     )
     actor_user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
