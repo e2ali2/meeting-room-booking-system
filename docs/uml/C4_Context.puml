@@ -1,0 +1,21 @@
+@startuml
+title C4 Level 1 — System Context\nMeeting Room Booking System
+
+left to right direction
+
+actor "Employee" as Employee
+actor "Administrator" as Admin
+
+rectangle "Meeting Room Booking System" as MRBS {
+}
+
+rectangle "Corporate Authentication System" as Auth <<External System>>
+rectangle "Corporate Email Service" as Email <<External System>>
+
+Employee --> MRBS : Searches for rooms,\ncreates and manages own bookings
+Admin --> MRBS : Manages offices, rooms,\nbookings and views analytics
+
+MRBS --> Auth : Authenticates users
+MRBS --> Email : Sends booking notifications
+
+@enduml
