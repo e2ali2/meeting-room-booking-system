@@ -18,6 +18,7 @@ def get_current_user(db: Session) -> User:
     # Временная заглушка до подключения корпоративной авторизации.
     user = db.scalar(
         select(User).where(
+            User.employee_id == "EMP-1001",
             User.role == "EMPLOYEE",
             User.status == "ACTIVE",
         )
