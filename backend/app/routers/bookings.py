@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import uuid
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -7,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Booking, Office, Room, User
+from app.models import Booking, Office, OutboxEvent, Room, User
 from app.schemas import CreateBookingRequest, UpdateBookingRequest
 
 router = APIRouter(prefix="/api/v1/bookings", tags=["Bookings"])
@@ -152,12 +153,42 @@ def create_booking(
         updated_at=datetime.now(timezone.utc),
     )
 
-    db.add(booking)
-
     try:
+        db.add(booking)
+
+        # Получаем booking_id от PostgreSQL без COMMIT.
+        db.flush()
+
+        event_id = uuid.uuid4()
+
+        outbox_event = OutboxEvent(
+            event_id=event_id,
+            aggregate_type="Booking",
+            aggregate_id=booking.booking_id,
+            event_type="BookingCreated",
+            payload={
+                "event_id": str(event_id),
+                "event_type": "BookingCreated",
+                "booking_id": str(booking.booking_id),
+                "user_id": str(user.user_id),
+                "room_id": str(request.room_id),
+                "start_time": request.start_time.isoformat(),
+                "end_time": request.end_time.isoformat(),
+            },
+            status="PENDING",
+            retry_count=0,
+            created_at=datetime.now(timezone.utc),
+            published_at=None,
+        )
+
+        db.add(outbox_event)
+
+        # Booking и OutboxEvent фиксируются одной транзакцией.
         db.commit()
-    except IntegrityError:
+
+    except IntegrityError as e:
         db.rollback()
+        print("DATABASE INTEGRITY ERROR:", repr(e))
         raise HTTPException(status_code=409, detail={
             "code": "ROOM_ALREADY_BOOKED",
             "message": "Room is already booked for the selected time",
@@ -165,7 +196,6 @@ def create_booking(
 
     db.refresh(booking)
     return booking
-
 
 @router.get("/my")
 def get_my_bookings(db: Session = Depends(get_db)):
@@ -253,6 +283,30 @@ def update_booking(
     booking.end_time = end_time
     booking.updated_at = now
 
+    event_id = uuid.uuid4()
+
+    outbox_event = OutboxEvent(
+        event_id=event_id,
+        aggregate_type="Booking",
+        aggregate_id=booking.booking_id,
+        event_type="BookingUpdated",
+        payload={
+            "event_id": str(event_id),
+            "event_type": "BookingUpdated",
+            "booking_id": str(booking.booking_id),
+            "user_id": str(user.user_id),
+            "room_id": str(room_id),
+            "start_time": start_time.isoformat(),
+            "end_time": end_time.isoformat(),
+        },
+        status="PENDING",
+        retry_count=0,
+        created_at=now,
+        published_at=None,
+    )
+
+    db.add(outbox_event)
+
     try:
         db.commit()
     except IntegrityError:
@@ -305,6 +359,30 @@ def cancel_booking(
     booking.cancelled_by = user.user_id
     booking.updated_at = now
 
+    event_id = uuid.uuid4()
+
+    outbox_event = OutboxEvent(
+        event_id=event_id,
+        aggregate_type="Booking",
+        aggregate_id=booking.booking_id,
+        event_type="BookingCancelled",
+        payload={
+            "event_id": str(event_id),
+            "event_type": "BookingCancelled",
+            "booking_id": str(booking.booking_id),
+            "user_id": str(user.user_id),
+            "room_id": str(booking.room_id),
+            "start_time": booking.start_time.isoformat(),
+            "end_time": booking.end_time.isoformat(),
+            "cancelled_at": now.isoformat(),
+        },
+        status="PENDING",
+        retry_count=0,
+        created_at=now,
+        published_at=None,
+    )
+
+    db.add(outbox_event)
     db.commit()
     db.refresh(booking)
 
