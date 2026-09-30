@@ -237,6 +237,64 @@ Implemented:
 - BPMN, UML and C4 diagrams
 - Edge-case and concurrency analysis
 - Jira backlog and traceability
+
+## How to Run
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/e2ali2/meeting-room-booking-system.git
+cd meeting-room-booking-system
+```
+
+### 2. Create Python virtual environment
+
+```bash
+cd backend
+python -m venv .venv
+```
+
+Activate it on Windows:
+
+```bash
+source .venv/Scripts/activate
+```
+
+### 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Configure environment
+
+Copy `.env.example` to `.env` and provide your local PostgreSQL and SMTP credentials.
+
+### 5. Prepare PostgreSQL
+
+Create the `meeting_room_booking` database and execute:
+
+- `database/schema.sql`
+- `database/seed.sql`
+
+### 6. Start the API
+
+From the `backend` directory:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Swagger UI:
+
+`http://127.0.0.1:8000/docs`
+
+### 7. Optional: asynchronous notifications
+
+RabbitMQ is required for asynchronous email notifications.
+
+Run the Outbox Publisher and Email Worker separately after RabbitMQ is available.
+
 ## Repository Structure
 
 ```text
