@@ -65,42 +65,46 @@ CROSS JOIN equipment e
 WHERE r.name = 'Polaris'
   AND e.name IN ('TV', 'Whiteboard');
 
-INSERT INTO bookings (user_id, room_id, start_time, end_time)
+INSERT INTO bookings (user_id, room_id, start_time, end_time, notification_email)
 SELECT
     u.user_id,
     r.room_id,
     TIMESTAMPTZ '2026-09-28 10:00:00+03',
-    TIMESTAMPTZ '2026-09-28 11:00:00+03'
+    TIMESTAMPTZ '2026-09-28 11:00:00+03',
+    u.email
 FROM users u
 JOIN rooms r ON r.name = 'Orion'
 WHERE u.employee_id = 'EMP1001';
 
-INSERT INTO bookings (user_id, room_id, start_time, end_time)
+INSERT INTO bookings (user_id, room_id, start_time, end_time, notification_email)
 SELECT
     u.user_id,
     r.room_id,
     TIMESTAMPTZ '2026-09-28 11:00:00+03',
-    TIMESTAMPTZ '2026-09-28 12:00:00+03'
+    TIMESTAMPTZ '2026-09-28 12:00:00+03',
+    u.email
 FROM users u
 JOIN rooms r ON r.name = 'Orion'
 WHERE u.employee_id = 'EMP1002';
 
-INSERT INTO bookings (user_id, room_id, start_time, end_time)
+INSERT INTO bookings (user_id, room_id, start_time, end_time, notification_email)
 SELECT
     u.user_id,
     r.room_id,
     TIMESTAMPTZ '2026-09-28 13:00:00+03',
-    TIMESTAMPTZ '2026-09-28 14:30:00+03'
+    TIMESTAMPTZ '2026-09-28 14:30:00+03',
+    u.email
 FROM users u
 JOIN rooms r ON r.name = 'Vega'
 WHERE u.employee_id = 'EMP1003';
 
-INSERT INTO bookings (user_id, room_id, start_time, end_time)
+INSERT INTO bookings (user_id, room_id, start_time, end_time, notification_email)
 SELECT
     u.user_id,
     r.room_id,
     TIMESTAMPTZ '2026-09-29 09:00:00+03',
-    TIMESTAMPTZ '2026-09-29 11:00:00+03'
+    TIMESTAMPTZ '2026-09-29 11:00:00+03',
+    u.email
 FROM users u
 JOIN rooms r ON r.name = 'Atlas'
 WHERE u.employee_id = 'EMP1001';

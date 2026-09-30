@@ -7,8 +7,28 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Booking, Equipment, Office, Room, RoomEquipment
+from app.routers.bookings import validate_booking_time
 
 router = APIRouter(prefix="/api/v1/rooms", tags=["Rooms"])
+
+
+def room_to_dict(db: Session, room: Room):
+    equipment = db.execute(
+        select(Equipment.equipment_id, Equipment.name)
+        .join(RoomEquipment, Equipment.equipment_id == RoomEquipment.equipment_id)
+        .where(RoomEquipment.room_id == room.room_id)
+        .order_by(Equipment.name)
+    ).all()
+    return {
+        "room_id": room.room_id,
+        "office_id": room.office_id,
+        "name": room.name,
+        "floor": room.floor,
+        "capacity": room.capacity,
+        "status": room.status,
+        "photo_url": room.photo_url,
+        "equipment": [{"equipment_id": item.equipment_id, "name": item.name} for item in equipment],
+    }
 
 
 @router.get("")
@@ -17,7 +37,7 @@ def get_rooms(db: Session = Depends(get_db)):
         select(Room).where(Room.status == "ACTIVE")
     ).all()
 
-    return rooms
+    return [room_to_dict(db, room) for room in rooms]
 
 
 @router.get("/available")
@@ -29,6 +49,8 @@ def get_available_rooms(
     equipment: list[str] | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
+    validate_booking_time(start_time, end_time)
+
     query = (
         select(Room)
         .join(Office, Room.office_id == Office.office_id)
@@ -61,4 +83,4 @@ def get_available_rooms(
 
     query = query.where(Room.room_id.not_in(busy_rooms))
 
-    return db.scalars(query).all()
+    return [room_to_dict(db, room) for room in db.scalars(query).all()]

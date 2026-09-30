@@ -1,69 +1,156 @@
 import json
 import os
 import smtplib
+from datetime import datetime, timezone
 from email.message import EmailMessage
+from email.utils import format_datetime, formataddr, make_msgid
+from html import escape
+from zoneinfo import ZoneInfo
 
 import pika
 from dotenv import load_dotenv
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import engine
-from app.models import User
+from app.models import Office, Room, User
 
 
 load_dotenv()
 
-RABBITMQ_HOST = "localhost"
-QUEUE_NAME = "email.notifications"
+RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
+QUEUE_NAME = "email.notifications.v2"
+EXCHANGE_NAME = "booking.events"
+DEAD_LETTER_EXCHANGE = "booking.events.dlx"
+DEAD_LETTER_QUEUE = "email.notifications.v2.dlq"
+ROUTING_KEYS = ("booking.created", "booking.updated", "booking.cancelled")
 
 SMTP_HOST = os.getenv("SMTP_HOST")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))
 SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 SMTP_FROM = os.getenv("SMTP_FROM")
+SMTP_SECURITY = os.getenv("SMTP_SECURITY", "ssl").lower()
+MOSCOW_TZ = ZoneInfo("Europe/Moscow")
 
 
-def get_user_email(user_id):
+def get_booking_context(user_id, room_id):
     with Session(engine) as db:
-        user = db.get(User, user_id)
+        user = db.get(User, user_id) if user_id else None
+        room_row = db.execute(
+            select(Room, Office)
+            .join(Office, Office.office_id == Room.office_id)
+            .where(Room.room_id == room_id)
+        ).first() if room_id else None
 
-        if not user:
-            raise RuntimeError(f"User {user_id} not found")
+        return {
+            "user_name": user.name if user else "Коллега",
+            "user_email": user.email if user else None,
+            "room_name": room_row[0].name if room_row else "Переговорная",
+            "room_floor": room_row[0].floor if room_row else None,
+            "office_name": room_row[1].name if room_row else "Офис",
+            "office_address": room_row[1].address if room_row else None,
+        }
 
-        return user.email
+
+def format_moscow_time(value):
+    if not value:
+        return "Не указано"
+
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=ZoneInfo("UTC"))
+    return parsed.astimezone(MOSCOW_TZ).strftime("%d.%m.%Y, %H:%M")
 
 
-def build_email(event, recipient):
+def build_email(event, recipient, context=None):
+    context = context or {}
     event_type = event.get("event_type")
-    room_id = event.get("room_id")
-    start_time = event.get("start_time")
-    end_time = event.get("end_time")
+    start_time = format_moscow_time(event.get("start_time"))
+    end_time = format_moscow_time(event.get("end_time"))
+    room_name = context.get("room_name") or "Переговорная"
+    office_name = context.get("office_name") or "Офис"
+    user_name = context.get("user_name") or "Коллега"
+    floor = context.get("room_floor")
+    address = context.get("office_address")
 
-    subjects = {
-        "BookingCreated": "Переговорная забронирована",
-        "BookingUpdated": "Бронирование изменено",
-        "BookingCancelled": "Бронирование отменено",
+    variants = {
+        "BookingCreated": ("Бронирование подтверждено", "Ваша переговорная успешно забронирована.", "#176b5b"),
+        "BookingUpdated": ("Бронирование изменено", "Изменения в бронировании успешно сохранены.", "#315c8a"),
+        "BookingCancelled": ("Бронирование отменено", "Бронирование переговорной отменено.", "#8a4b45"),
     }
+    title, lead, accent = variants.get(
+        event_type,
+        ("Уведомление о бронировании", "Статус вашего бронирования изменён.", "#176b5b"),
+    )
+
+    location_details = office_name
+    if address:
+        location_details += f" — {address}"
+    room_details = room_name
+    if floor is not None:
+        room_details += f", {floor} этаж"
 
     message = EmailMessage()
-    message["Subject"] = subjects.get(
-        event_type,
-        "Уведомление Meeting Room Booking System",
-    )
-    message["From"] = SMTP_FROM
+    message["Subject"] = f"{title} — {room_name}"
+    message["From"] = formataddr(("Meeting Room Booking", SMTP_FROM))
     message["To"] = recipient
+    message["Date"] = format_datetime(datetime.now(timezone.utc))
+    sender_domain = SMTP_FROM.rsplit("@", 1)[-1] if "@" in SMTP_FROM else None
+    message["Message-ID"] = make_msgid(domain=sender_domain)
+    message["Auto-Submitted"] = "auto-generated"
+    message["X-Auto-Response-Suppress"] = "All"
+    message["Precedence"] = "bulk"
 
-    message.set_content(
-        f"""Meeting Room Booking System
+    message.set_content(f"""Здравствуйте, {user_name}!
 
-Событие: {event_type}
-Переговорная: {room_id}
-Начало: {start_time}
-Окончание: {end_time}
+{lead}
 
-Это автоматическое уведомление.
-"""
-    )
+Офис: {location_details}
+Переговорная: {room_details}
+Начало: {start_time} (МСК)
+Окончание: {end_time} (МСК)
+
+С уважением,
+команда Meeting Room Booking System
+
+Это автоматическое уведомление. Отвечать на него не нужно.
+""")
+
+    safe = {key: escape(str(value)) for key, value in {
+        "user_name": user_name,
+        "title": title,
+        "lead": lead,
+        "office": location_details,
+        "room": room_details,
+        "start": start_time,
+        "end": end_time,
+    }.items()}
+    message.add_alternative(f"""<!doctype html>
+<html lang="ru"><body style="margin:0;background:#f3f6f4;font-family:Arial,sans-serif;color:#18312c">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f6f4;padding:32px 12px">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 10px 30px rgba(25,55,48,.10)">
+        <tr><td style="background:{accent};padding:28px 34px;color:#ffffff">
+          <div style="font-size:13px;letter-spacing:1.4px;text-transform:uppercase;opacity:.82">Meeting Room Booking</div>
+          <div style="font-size:26px;font-weight:700;margin-top:10px">{safe['title']}</div>
+        </td></tr>
+        <tr><td style="padding:32px 34px">
+          <p style="font-size:17px;margin:0 0 14px">Здравствуйте, <strong>{safe['user_name']}</strong>!</p>
+          <p style="font-size:16px;line-height:1.55;color:#52645f;margin:0 0 26px">{safe['lead']}</p>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f8f6;border:1px solid #e1e9e5;border-radius:14px">
+            <tr><td style="padding:16px 18px;border-bottom:1px solid #e1e9e5;color:#6b7c77;font-size:13px;width:32%">Офис</td><td style="padding:16px 18px;border-bottom:1px solid #e1e9e5;font-weight:600">{safe['office']}</td></tr>
+            <tr><td style="padding:16px 18px;border-bottom:1px solid #e1e9e5;color:#6b7c77;font-size:13px">Переговорная</td><td style="padding:16px 18px;border-bottom:1px solid #e1e9e5;font-weight:600">{safe['room']}</td></tr>
+            <tr><td style="padding:16px 18px;border-bottom:1px solid #e1e9e5;color:#6b7c77;font-size:13px">Начало</td><td style="padding:16px 18px;border-bottom:1px solid #e1e9e5;font-weight:600">{safe['start']} <span style="color:#71817c;font-weight:400">МСК</span></td></tr>
+            <tr><td style="padding:16px 18px;color:#6b7c77;font-size:13px">Окончание</td><td style="padding:16px 18px;font-weight:600">{safe['end']} <span style="color:#71817c;font-weight:400">МСК</span></td></tr>
+          </table>
+          <p style="font-size:15px;line-height:1.55;margin:26px 0 0">С уважением,<br><strong>команда Meeting Room Booking System</strong></p>
+        </td></tr>
+        <tr><td style="padding:18px 34px;background:#edf3f0;color:#71817c;font-size:12px;line-height:1.5">Это автоматическое уведомление. Отвечать на него не нужно.</td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>""", subtype="html")
 
     return message
 
@@ -72,7 +159,14 @@ def send_email(message):
     if not all([SMTP_HOST, SMTP_USER, SMTP_PASSWORD, SMTP_FROM]):
         raise RuntimeError("SMTP settings are not configured")
 
-    with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT) as smtp:
+    if SMTP_SECURITY == "ssl":
+        smtp = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=30)
+    else:
+        smtp = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30)
+
+    with smtp:
+        if SMTP_SECURITY == "starttls":
+            smtp.starttls()
         smtp.login(SMTP_USER, SMTP_PASSWORD)
         smtp.send_message(message)
 
@@ -87,14 +181,14 @@ def process_message(ch, method, properties, body):
         if event.get("simulate_failure") is True:
             raise RuntimeError("Simulated email sending failure")
 
-        user_id = event.get("user_id")
+        context = get_booking_context(event.get("user_id"), event.get("room_id"))
+        recipient = event.get("notification_email")
+        if not recipient:
+            if not context.get("user_email"):
+                raise RuntimeError("notification_email and user_id are missing in event")
+            recipient = context["user_email"]
 
-        if not user_id:
-            raise RuntimeError("user_id is missing in event")
-
-        recipient = get_user_email(user_id)
-
-        message = build_email(event, recipient)
+        message = build_email(event, recipient, context)
         send_email(message)
 
         print(f"\n[EMAIL] Письмо отправлено: {recipient}")
@@ -118,10 +212,33 @@ def main():
 
     channel = connection.channel()
 
+    channel.exchange_declare(
+        exchange=EXCHANGE_NAME,
+        exchange_type="topic",
+        durable=True,
+    )
+    channel.exchange_declare(
+        exchange=DEAD_LETTER_EXCHANGE,
+        exchange_type="topic",
+        durable=True,
+    )
     channel.queue_declare(
         queue=QUEUE_NAME,
         durable=True,
+        arguments={"x-dead-letter-exchange": DEAD_LETTER_EXCHANGE},
     )
+    channel.queue_declare(queue=DEAD_LETTER_QUEUE, durable=True)
+    channel.queue_bind(
+        exchange=DEAD_LETTER_EXCHANGE,
+        queue=DEAD_LETTER_QUEUE,
+        routing_key="#",
+    )
+    for routing_key in ROUTING_KEYS:
+        channel.queue_bind(
+            exchange=EXCHANGE_NAME,
+            queue=QUEUE_NAME,
+            routing_key=routing_key,
+        )
 
     channel.basic_qos(prefetch_count=1)
 

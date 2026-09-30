@@ -14,6 +14,7 @@ Design a reliable internal web service that provides a unified meeting room book
 - Search available rooms by office, date and time
 - Filter rooms by capacity and equipment
 - Create meeting room bookings
+- Choose a notification email for each booking
 - Modify and cancel own bookings
 - View current and historical bookings
 - Receive email notifications
@@ -54,7 +55,8 @@ Main components:
 - RabbitMQ
 - Email Worker
 - SMTP Service
-- Web Frontend — planned for the public demo
+- Responsive web frontend served by FastAPI
+- Demo Auth role selector designed to be replaced by Corporate Auth
 
 Notification flow:
 
@@ -251,6 +253,7 @@ Implemented:
 - Transactional Outbox
 - RabbitMQ integration
 - BookingCreated / BookingUpdated / BookingCancelled events
+- Email recipient snapshots stored per booking and included in every booking event
 - Email Worker and SMTP delivery
 - Dead Letter Queue
 - OpenAPI documentation
@@ -258,8 +261,38 @@ Implemented:
 - BPMN, UML and C4 diagrams
 - Edge-case and concurrency analysis
 - Jira backlog and traceability
+- Responsive employee and administrator web applications
+- Demo Auth without public registration
+- Employee search, booking, rescheduling, cancellation and history
+- Admin booking registry, resource management and analytics dashboard
 
 ## How to Run
+
+## Production deployment with Docker
+
+The production stack is defined in `docker-compose.prod.yml` and includes the
+FastAPI application, PostgreSQL, RabbitMQ, the outbox publisher, the email
+worker, and Caddy for automatic HTTPS.
+
+1. Copy `.env.production.example` to `.env.production` on the server.
+2. Replace every placeholder with production-only secrets. Never commit
+   `.env.production`.
+3. Point the `A` records for `meetingsystem.ru` and `www.meetingsystem.ru` to
+   the server's public IPv4 address.
+4. Start the stack:
+
+   ```bash
+   docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+   ```
+
+5. Verify `https://meetingsystem.ru/api/v1/health` and review service status:
+
+   ```bash
+   docker compose --env-file .env.production -f docker-compose.prod.yml ps
+   ```
+
+Caddy obtains and renews TLS certificates automatically after DNS points to
+the server and inbound ports 80 and 443 are open.
 
 ### 1. Clone the repository
 
@@ -298,6 +331,16 @@ Create the `meeting_room_booking` database and execute:
 - `database/schema.sql`
 - `database/seed.sql`
 
+For an existing local database, apply the idempotent migration:
+
+```bash
+psql -d meeting_room_booking -f database/migrations/002_add_booking_notification_email.sql
+```
+
+The booking form pre-fills the demo user's email but allows a visitor to enter
+their own notification address. That address is validated, stored with the
+booking and reused for created, updated and cancelled notification events.
+
 ### 6. Start the API
 
 From the `backend` directory:
@@ -309,6 +352,19 @@ uvicorn app.main:app --reload
 Swagger UI:
 
 `http://127.0.0.1:8000/docs`
+
+Web application:
+
+`http://127.0.0.1:8000/`
+
+The landing page offers two demo identities: Employee and Administrator. Demo
+Auth is enabled by `DEMO_AUTH_ENABLED=true`; it resolves seeded users and sends
+no credentials to the browser. Set `DEMO_EMPLOYEE_ID` to select another seeded
+employee. This adapter is intentionally isolated so it can be replaced with
+corporate OIDC/JWT authentication for production.
+
+For a separately hosted frontend, add its origin to the comma-separated
+`CORS_ORIGINS` value. The default same-origin deployment needs no extra setup.
 
 ### 7. Optional: asynchronous notifications
 
@@ -324,6 +380,9 @@ meeting-room-booking/
 │   └── app/
 │       ├── routers/
 │       └── workers/
+│   └── frontend/
+│       ├── assets/
+│       └── index.html
 ├── database/
 │   ├── schema.sql
 │   └── seed.sql

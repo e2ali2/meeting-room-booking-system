@@ -1,0 +1,11 @@
+.git
+.venv
+backend/.venv
+backend/.env
+.env
+.env.production
+out
+__pycache__
+*.pyc
+docs
+postman

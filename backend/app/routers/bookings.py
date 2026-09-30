@@ -2,35 +2,21 @@ from datetime import datetime, timedelta, timezone
 import uuid
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.auth import get_demo_user
 from app.models import Booking, Office, OutboxEvent, Room, User
 from app.schemas import CreateBookingRequest, UpdateBookingRequest
 
 router = APIRouter(prefix="/api/v1/bookings", tags=["Bookings"])
 
 
-def get_current_user(db: Session) -> User:
-    # Временная заглушка до подключения корпоративной авторизации.
-    user = db.scalar(
-        select(User).where(
-            User.employee_id == "EMP-1001",
-            User.role == "EMPLOYEE",
-            User.status == "ACTIVE",
-        )
-    )
-
-    if user is None:
-        raise HTTPException(status_code=401, detail={
-            "code": "UNAUTHORIZED",
-            "message": "User is not authenticated",
-        })
-
-    return user
+def get_current_user(db: Session, x_demo_role: str | None = None) -> User:
+    return get_demo_user(db, x_demo_role)
 
 
 def validate_booking_time(start_time: datetime, end_time: datetime):
@@ -131,9 +117,12 @@ def check_conflict(
 @router.post("", status_code=201)
 def create_booking(
     request: CreateBookingRequest,
+    x_demo_role: str | None = Header(default=None, alias="X-Demo-Role"),
     db: Session = Depends(get_db),
 ):
-    user = get_current_user(db)
+    user = get_current_user(db, x_demo_role)
+    if user.role != "EMPLOYEE":
+        raise HTTPException(status_code=403, detail={"code": "FORBIDDEN", "message": "Employee access is required"})
 
     validate_booking_time(request.start_time, request.end_time)
     check_room(db, request.room_id)
@@ -149,6 +138,7 @@ def create_booking(
         room_id=request.room_id,
         start_time=request.start_time,
         end_time=request.end_time,
+        notification_email=request.notification_email or user.email,
         status="ACTIVE",
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
@@ -175,6 +165,7 @@ def create_booking(
                 "room_id": str(request.room_id),
                 "start_time": request.start_time.isoformat(),
                 "end_time": request.end_time.isoformat(),
+                "notification_email": booking.notification_email,
             },
             status="PENDING",
             retry_count=0,
@@ -198,9 +189,21 @@ def create_booking(
     db.refresh(booking)
     return booking
 
+@router.get("/me")
+def get_me(
+    x_demo_role: str | None = Header(default=None, alias="X-Demo-Role"),
+    db: Session = Depends(get_db),
+):
+    user = get_current_user(db, x_demo_role)
+    return {"user_id": user.user_id, "employee_id": user.employee_id, "name": user.name, "email": user.email, "role": user.role}
+
+
 @router.get("/my")
-def get_my_bookings(db: Session = Depends(get_db)):
-    user = get_current_user(db)
+def get_my_bookings(
+    x_demo_role: str | None = Header(default=None, alias="X-Demo-Role"),
+    db: Session = Depends(get_db),
+):
+    user = get_current_user(db, x_demo_role)
 
     return db.scalars(
         select(Booking)
@@ -212,9 +215,10 @@ def get_my_bookings(db: Session = Depends(get_db)):
 @router.get("/{booking_id}")
 def get_booking(
     booking_id: UUID,
+    x_demo_role: str | None = Header(default=None, alias="X-Demo-Role"),
     db: Session = Depends(get_db),
 ):
-    user = get_current_user(db)
+    user = get_current_user(db, x_demo_role)
     booking = db.get(Booking, booking_id)
 
     if booking is None:
@@ -236,9 +240,10 @@ def get_booking(
 def update_booking(
     booking_id: UUID,
     request: UpdateBookingRequest,
+    x_demo_role: str | None = Header(default=None, alias="X-Demo-Role"),
     db: Session = Depends(get_db),
 ):
-    user = get_current_user(db)
+    user = get_current_user(db, x_demo_role)
     booking = db.get(Booking, booking_id)
 
     if booking is None:
@@ -268,6 +273,7 @@ def update_booking(
     room_id = request.room_id or booking.room_id
     start_time = request.start_time or booking.start_time
     end_time = request.end_time or booking.end_time
+    notification_email = request.notification_email or booking.notification_email
 
     validate_booking_time(start_time, end_time)
     check_room(db, room_id)
@@ -282,6 +288,7 @@ def update_booking(
     booking.room_id = room_id
     booking.start_time = start_time
     booking.end_time = end_time
+    booking.notification_email = notification_email
     booking.updated_at = now
 
     event_id = uuid.uuid4()
@@ -299,6 +306,7 @@ def update_booking(
             "room_id": str(room_id),
             "start_time": start_time.isoformat(),
             "end_time": end_time.isoformat(),
+            "notification_email": notification_email,
         },
         status="PENDING",
         retry_count=0,
@@ -324,9 +332,10 @@ def update_booking(
 @router.post("/{booking_id}/cancel")
 def cancel_booking(
     booking_id: UUID,
+    x_demo_role: str | None = Header(default=None, alias="X-Demo-Role"),
     db: Session = Depends(get_db),
 ):
-    user = get_current_user(db)
+    user = get_current_user(db, x_demo_role)
     booking = db.get(Booking, booking_id)
 
     if booking is None:
@@ -376,6 +385,7 @@ def cancel_booking(
             "start_time": booking.start_time.isoformat(),
             "end_time": booking.end_time.isoformat(),
             "cancelled_at": now.isoformat(),
+            "notification_email": booking.notification_email,
         },
         status="PENDING",
         retry_count=0,

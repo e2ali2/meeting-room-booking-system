@@ -1,4 +1,6 @@
 import json
+import os
+import time
 from datetime import datetime, timezone
 
 import pika
@@ -9,8 +11,12 @@ from app.database import engine
 from app.models import OutboxEvent
 
 
-RABBITMQ_HOST = "localhost"
+RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
+POLL_INTERVAL_SECONDS = int(os.getenv("OUTBOX_POLL_INTERVAL_SECONDS", "5"))
 EXCHANGE_NAME = "booking.events"
+EMAIL_QUEUE = "email.notifications.v2"
+DEAD_LETTER_EXCHANGE = "booking.events.dlx"
+DEAD_LETTER_QUEUE = "email.notifications.v2.dlq"
 
 ROUTING_KEYS = {
     "BookingCreated": "booking.created",
@@ -45,6 +51,28 @@ def publish_pending_events():
             exchange_type="topic",
             durable=True,
         )
+        channel.exchange_declare(
+            exchange=DEAD_LETTER_EXCHANGE,
+            exchange_type="topic",
+            durable=True,
+        )
+        channel.queue_declare(
+            queue=EMAIL_QUEUE,
+            durable=True,
+            arguments={"x-dead-letter-exchange": DEAD_LETTER_EXCHANGE},
+        )
+        channel.queue_declare(queue=DEAD_LETTER_QUEUE, durable=True)
+        channel.queue_bind(
+            exchange=DEAD_LETTER_EXCHANGE,
+            queue=DEAD_LETTER_QUEUE,
+            routing_key="#",
+        )
+        for routing_key in ROUTING_KEYS.values():
+            channel.queue_bind(
+                exchange=EXCHANGE_NAME,
+                queue=EMAIL_QUEUE,
+                routing_key=routing_key,
+            )
 
         for event in events:
             routing_key = ROUTING_KEYS.get(event.event_type)
@@ -99,4 +127,10 @@ def publish_pending_events():
 
 
 if __name__ == "__main__":
-    publish_pending_events()
+    print("[OUTBOX] Publisher started")
+    while True:
+        try:
+            publish_pending_events()
+        except Exception as exc:
+            print(f"[OUTBOX ERROR] {exc}")
+        time.sleep(POLL_INTERVAL_SECONDS)

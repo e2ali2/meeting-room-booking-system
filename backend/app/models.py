@@ -137,6 +137,9 @@ class Booking(Base):
     end_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
+    notification_email: Mapped[str] = mapped_column(
+        String(320), nullable=False
+    )
     status: Mapped[str] = mapped_column(
         String(20), nullable=False
     )
