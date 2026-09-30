@@ -132,30 +132,51 @@ ERD:
 
 - `docs/uml/ERD.puml`
 
+### Entity Relationship Diagram
+
+![Entity Relationship Diagram](docs/images/ERD.png)
+
+
 ## System Analysis Artifacts
 
 ### BPMN
-Located in `docs/bpmn`:
 
-- `BPMN-01_Create_Booking.bpmn`
-- `BPMN-02_Modify_Booking.bpmn`
-- `BPMN-03_Cancel_Booking.bpmn`
+- [Create Booking Process](docs/images/BPMN-01_Create_Booking.svg)
+- [Modify Booking Process](docs/images/BPMN-02_Modify_Booking.svg)
+- [Cancel Booking Process](docs/images/BPMN-03_Cancel_Booking.svg)
 
+Editable BPMN source files are located in `docs/bpmn`.
 ### UML
-Located in `docs/uml`:
 
-- Use Case Diagram
-- Create Booking Sequence Diagram
-- Modify Booking Sequence Diagram
-- Cancel Booking Sequence Diagram
-- ERD
+#### Use Case Diagram
 
+![Use Case Diagram](docs/images/Use_Case_Diagram.svg)
+
+Sequence diagrams:
+
+- [Create Booking](docs/images/Sequence_Create_Booking.svg)
+- [Modify Booking](docs/images/Sequence_Modify_Booking.svg)
+- [Cancel Booking](docs/images/Sequence_Cancel_Booking.svg)
+
+PlantUML source files are located in `docs/uml`.
 ### C4 Architecture
 Located in `docs/uml`:
 
 - `C4_Context.puml`
 - `C4_Container.puml`
 - `C4_Component_Backend.puml`
+
+### C4 System Context
+
+![C4 System Context](docs/images/C4_Context.png)
+
+### C4 Container Diagram
+
+![C4 Container Diagram](docs/images/C4_Container.png)
+
+### C4 Backend Component Diagram
+
+![C4 Backend Component Diagram](docs/images/C4_Component_Backend.png)
 
 ### Edge Cases and Concurrency
 
