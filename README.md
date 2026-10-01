@@ -229,7 +229,7 @@ Detailed system analysis documentation is maintained in Confluence:
 - SQLAlchemy
 - PostgreSQL
 - RabbitMQ
-- SMTP
+- SMTP / UniSender Go Web API
 - OpenAPI / Swagger
 - Postman
 - PlantUML
@@ -264,6 +264,7 @@ Implemented:
 - Demo Auth without public registration
 - Employee search, booking, rescheduling, cancellation and history
 - Admin booking registry, resource management and analytics dashboard
+- Serverless FastAPI entrypoint and direct UniSender Go delivery mode for the public demo
 
 ## How to Run
 

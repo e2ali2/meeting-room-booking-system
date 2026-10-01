@@ -1,6 +1,8 @@
 import json
 import os
 import smtplib
+from urllib import error as urlerror
+from urllib import request as urlrequest
 from datetime import datetime, timezone
 from email.message import EmailMessage
 from email.utils import format_datetime, formataddr, make_msgid
@@ -31,6 +33,14 @@ SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 SMTP_FROM = os.getenv("SMTP_FROM")
 SMTP_SECURITY = os.getenv("SMTP_SECURITY", "ssl").lower()
+UNISENDER_API_KEY = os.getenv("UNISENDER_API_KEY")
+UNISENDER_API_URL = os.getenv(
+    "UNISENDER_API_URL",
+    "https://goapi.unisender.ru/ru/transactional/api/v1/email/send.json",
+)
+EMAIL_FROM = os.getenv("EMAIL_FROM") or SMTP_FROM
+EMAIL_FROM_NAME = os.getenv("EMAIL_FROM_NAME", "Meeting Room Booking")
+NOTIFICATION_DELIVERY = os.getenv("NOTIFICATION_DELIVERY", "rabbitmq").lower()
 MOSCOW_TZ = ZoneInfo("Europe/Moscow")
 
 
@@ -93,10 +103,11 @@ def build_email(event, recipient, context=None):
 
     message = EmailMessage()
     message["Subject"] = f"{title} — {room_name}"
-    message["From"] = formataddr(("Meeting Room Booking", SMTP_FROM))
+    sender = EMAIL_FROM or "booking@meetingsystem.ru"
+    message["From"] = formataddr((EMAIL_FROM_NAME, sender))
     message["To"] = recipient
     message["Date"] = format_datetime(datetime.now(timezone.utc))
-    sender_domain = SMTP_FROM.rsplit("@", 1)[-1] if "@" in SMTP_FROM else None
+    sender_domain = sender.rsplit("@", 1)[-1] if "@" in sender else None
     message["Message-ID"] = make_msgid(domain=sender_domain)
     message["Auto-Submitted"] = "auto-generated"
     message["X-Auto-Response-Suppress"] = "All"
@@ -169,6 +180,70 @@ def send_email(message):
             smtp.starttls()
         smtp.login(SMTP_USER, SMTP_PASSWORD)
         smtp.send_message(message)
+
+
+def send_email_via_unisender(message, event_id=None):
+    if not UNISENDER_API_KEY or not EMAIL_FROM:
+        raise RuntimeError("UniSender API settings are not configured")
+
+    plain_part = message.get_body(preferencelist=("plain",))
+    html_part = message.get_body(preferencelist=("html",))
+    payload = {
+        "message": {
+            "recipients": [{"email": str(message["To"])}],
+            "body": {
+                "plaintext": plain_part.get_content() if plain_part else "",
+                "html": html_part.get_content() if html_part else "",
+            },
+            "subject": str(message["Subject"]),
+            "from_email": EMAIL_FROM,
+            "from_name": EMAIL_FROM_NAME,
+            "track_links": 0,
+            "track_read": 0,
+            "skip_unsubscribe": 1,
+        }
+    }
+    if event_id:
+        payload["message"]["idempotence_key"] = str(event_id)
+
+    api_request = urlrequest.Request(
+        UNISENDER_API_URL,
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "X-API-KEY": UNISENDER_API_KEY,
+        },
+        method="POST",
+    )
+    try:
+        with urlrequest.urlopen(api_request, timeout=20) as response:
+            result = json.loads(response.read().decode("utf-8"))
+    except urlerror.HTTPError as exc:
+        details = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"UniSender API returned HTTP {exc.code}: {details}") from exc
+    if result.get("status") == "error":
+        raise RuntimeError(f"UniSender API error: {result}")
+    return result
+
+
+def send_direct_notification(event):
+    """Send through HTTPS on serverless deployments without breaking a booking."""
+    if NOTIFICATION_DELIVERY != "unisender_api":
+        return False
+
+    try:
+        context = get_booking_context(event.get("user_id"), event.get("room_id"))
+        recipient = event.get("notification_email") or context.get("user_email")
+        if not recipient:
+            raise RuntimeError("Notification recipient is missing")
+        message = build_email(event, recipient, context)
+        send_email_via_unisender(message, event.get("event_id"))
+        print(f"[EMAIL] UniSender notification sent: {recipient}")
+        return True
+    except Exception as exc:
+        print(f"[EMAIL ERROR] {exc}")
+        return False
 
 
 def process_message(ch, method, properties, body):

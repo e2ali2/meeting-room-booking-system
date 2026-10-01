@@ -11,6 +11,7 @@ from app.database import get_db
 from app.auth import get_demo_user
 from app.models import Booking, Office, OutboxEvent, Room, User
 from app.schemas import CreateBookingRequest, UpdateBookingRequest
+from app.workers.email_worker import send_direct_notification
 
 router = APIRouter(prefix="/api/v1/bookings", tags=["Bookings"])
 
@@ -152,21 +153,22 @@ def create_booking(
 
         event_id = uuid.uuid4()
 
+        event_payload = {
+            "event_id": str(event_id),
+            "event_type": "BookingCreated",
+            "booking_id": str(booking.booking_id),
+            "user_id": str(user.user_id),
+            "room_id": str(request.room_id),
+            "start_time": request.start_time.isoformat(),
+            "end_time": request.end_time.isoformat(),
+            "notification_email": booking.notification_email,
+        }
         outbox_event = OutboxEvent(
             event_id=event_id,
             aggregate_type="Booking",
             aggregate_id=booking.booking_id,
             event_type="BookingCreated",
-            payload={
-                "event_id": str(event_id),
-                "event_type": "BookingCreated",
-                "booking_id": str(booking.booking_id),
-                "user_id": str(user.user_id),
-                "room_id": str(request.room_id),
-                "start_time": request.start_time.isoformat(),
-                "end_time": request.end_time.isoformat(),
-                "notification_email": booking.notification_email,
-            },
+            payload=event_payload,
             status="PENDING",
             retry_count=0,
             created_at=datetime.now(timezone.utc),
@@ -187,6 +189,7 @@ def create_booking(
         })
 
     db.refresh(booking)
+    send_direct_notification(event_payload)
     return booking
 
 @router.get("/me")
@@ -293,21 +296,22 @@ def update_booking(
 
     event_id = uuid.uuid4()
 
+    event_payload = {
+        "event_id": str(event_id),
+        "event_type": "BookingUpdated",
+        "booking_id": str(booking.booking_id),
+        "user_id": str(user.user_id),
+        "room_id": str(room_id),
+        "start_time": start_time.isoformat(),
+        "end_time": end_time.isoformat(),
+        "notification_email": notification_email,
+    }
     outbox_event = OutboxEvent(
         event_id=event_id,
         aggregate_type="Booking",
         aggregate_id=booking.booking_id,
         event_type="BookingUpdated",
-        payload={
-            "event_id": str(event_id),
-            "event_type": "BookingUpdated",
-            "booking_id": str(booking.booking_id),
-            "user_id": str(user.user_id),
-            "room_id": str(room_id),
-            "start_time": start_time.isoformat(),
-            "end_time": end_time.isoformat(),
-            "notification_email": notification_email,
-        },
+        payload=event_payload,
         status="PENDING",
         retry_count=0,
         created_at=now,
@@ -326,6 +330,7 @@ def update_booking(
         })
 
     db.refresh(booking)
+    send_direct_notification(event_payload)
     return booking
 
 
@@ -371,22 +376,23 @@ def cancel_booking(
 
     event_id = uuid.uuid4()
 
+    event_payload = {
+        "event_id": str(event_id),
+        "event_type": "BookingCancelled",
+        "booking_id": str(booking.booking_id),
+        "user_id": str(user.user_id),
+        "room_id": str(booking.room_id),
+        "start_time": booking.start_time.isoformat(),
+        "end_time": booking.end_time.isoformat(),
+        "cancelled_at": now.isoformat(),
+        "notification_email": booking.notification_email,
+    }
     outbox_event = OutboxEvent(
         event_id=event_id,
         aggregate_type="Booking",
         aggregate_id=booking.booking_id,
         event_type="BookingCancelled",
-        payload={
-            "event_id": str(event_id),
-            "event_type": "BookingCancelled",
-            "booking_id": str(booking.booking_id),
-            "user_id": str(user.user_id),
-            "room_id": str(booking.room_id),
-            "start_time": booking.start_time.isoformat(),
-            "end_time": booking.end_time.isoformat(),
-            "cancelled_at": now.isoformat(),
-            "notification_email": booking.notification_email,
-        },
+        payload=event_payload,
         status="PENDING",
         retry_count=0,
         created_at=now,
@@ -396,5 +402,6 @@ def cancel_booking(
     db.add(outbox_event)
     db.commit()
     db.refresh(booking)
+    send_direct_notification(event_payload)
 
     return booking

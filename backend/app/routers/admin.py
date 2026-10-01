@@ -1,4 +1,5 @@
 from datetime import date, datetime, timezone
+import uuid
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
@@ -8,7 +9,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.auth import require_admin
 from app.routers.bookings import check_conflict, check_room, validate_booking_time
-from app.models import AuditLog, Booking, Equipment, Office, Room, RoomEquipment, User
+from app.models import AuditLog, Booking, Equipment, Office, OutboxEvent, Room, RoomEquipment, User
+from app.workers.email_worker import send_direct_notification
 from app.schemas import (
     CreateEquipmentRequest,
     CreateOfficeRequest,
@@ -186,6 +188,29 @@ def update_booking(
     booking.notification_email = new_notification_email
     booking.updated_at = datetime.now(timezone.utc)
 
+    event_id = uuid.uuid4()
+    event_payload = {
+        "event_id": str(event_id),
+        "event_type": "BookingUpdated",
+        "booking_id": str(booking.booking_id),
+        "user_id": str(booking.user_id),
+        "room_id": str(new_room_id),
+        "start_time": new_start.isoformat(),
+        "end_time": new_end.isoformat(),
+        "notification_email": new_notification_email,
+    }
+    db.add(OutboxEvent(
+        event_id=event_id,
+        aggregate_type="Booking",
+        aggregate_id=booking.booking_id,
+        event_type="BookingUpdated",
+        payload=event_payload,
+        status="PENDING",
+        retry_count=0,
+        created_at=booking.updated_at,
+        published_at=None,
+    ))
+
     write_audit(
         db,
         admin,
@@ -201,6 +226,7 @@ def update_booking(
 
     db.commit()
     db.refresh(booking)
+    send_direct_notification(event_payload)
 
     return booking_to_dict(db, booking)
 
@@ -240,6 +266,30 @@ def cancel_booking(
     booking.cancelled_by = admin.user_id
     booking.updated_at = now
 
+    event_id = uuid.uuid4()
+    event_payload = {
+        "event_id": str(event_id),
+        "event_type": "BookingCancelled",
+        "booking_id": str(booking.booking_id),
+        "user_id": str(booking.user_id),
+        "room_id": str(booking.room_id),
+        "start_time": booking.start_time.isoformat(),
+        "end_time": booking.end_time.isoformat(),
+        "cancelled_at": now.isoformat(),
+        "notification_email": booking.notification_email,
+    }
+    db.add(OutboxEvent(
+        event_id=event_id,
+        aggregate_type="Booking",
+        aggregate_id=booking.booking_id,
+        event_type="BookingCancelled",
+        payload=event_payload,
+        status="PENDING",
+        retry_count=0,
+        created_at=now,
+        published_at=None,
+    ))
+
     write_audit(
         db,
         admin,
@@ -249,6 +299,7 @@ def cancel_booking(
 
     db.commit()
     db.refresh(booking)
+    send_direct_notification(event_payload)
 
     return booking_to_dict(db, booking)
 
