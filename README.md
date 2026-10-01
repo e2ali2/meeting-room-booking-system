@@ -331,11 +331,8 @@ Create the `meeting_room_booking` database and execute:
 - `database/schema.sql`
 - `database/seed.sql`
 
-For an existing local database, apply the idempotent migration:
-
-```bash
-psql -d meeting_room_booking -f database/migrations/002_add_booking_notification_email.sql
-```
+The project currently creates its database from scratch, so `schema.sql` is the
+single source of truth and matches the ERD in `docs/uml/ERD.puml`.
 
 The booking form pre-fills the demo user's email but allows a visitor to enter
 their own notification address. That address is validated, stored with the

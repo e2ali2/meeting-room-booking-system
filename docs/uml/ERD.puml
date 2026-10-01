@@ -8,49 +8,50 @@ hide stereotypes
 entity "users" as users {
     * user_id : UUID <<PK>>
     --
-    employee_id : VARCHAR <<UNIQUE>>
-    name : VARCHAR
-    email : VARCHAR <<UNIQUE>>
-    role : VARCHAR
-    status : VARCHAR
-    created_at : TIMESTAMP
+    employee_id : VARCHAR(50) <<UNIQUE>>
+    name : VARCHAR(255)
+    email : VARCHAR(255) <<UNIQUE>>
+    role : VARCHAR(20)
+    status : VARCHAR(20)
+    created_at : TIMESTAMPTZ
 }
 
 entity "offices" as offices {
     * office_id : UUID <<PK>>
     --
-    name : VARCHAR
-    address : VARCHAR
-    status : VARCHAR
+    name : VARCHAR(255) <<UNIQUE>>
+    address : VARCHAR(500)
+    status : VARCHAR(20)
 }
 
 entity "rooms" as rooms {
     * room_id : UUID <<PK>>
     --
     office_id : UUID <<FK>>
-    name : VARCHAR
+    name : VARCHAR(255) <<UNIQUE WITH office_id>>
     floor : INTEGER
     capacity : INTEGER
-    status : VARCHAR
-    photo_url : VARCHAR
+    status : VARCHAR(20)
+    photo_url : VARCHAR(1000) <<NULL>>
 }
 entity "bookings" as bookings {
     * booking_id : UUID <<PK>>
     --
     user_id : UUID <<FK>>
     room_id : UUID <<FK>>
-    start_time : TIMESTAMP
-    end_time : TIMESTAMP
-    status : VARCHAR
-    created_at : TIMESTAMP
-    updated_at : TIMESTAMP
-    cancelled_at : TIMESTAMP <<NULL>>
+    start_time : TIMESTAMPTZ
+    end_time : TIMESTAMPTZ
+    notification_email : VARCHAR(320)
+    status : VARCHAR(20)
+    created_at : TIMESTAMPTZ
+    updated_at : TIMESTAMPTZ
+    cancelled_at : TIMESTAMPTZ <<NULL>>
     cancelled_by : UUID <<FK, NULL>>
 }
 entity "equipment" as equipment {
     * equipment_id : UUID <<PK>>
     --
-    name : VARCHAR <<UNIQUE>>
+    name : VARCHAR(255) <<UNIQUE>>
 }
 
 entity "room_equipment" as room_equipment {
@@ -62,22 +63,22 @@ entity "audit_log" as audit_log {
     --
     actor_user_id : UUID <<FK>>
     booking_id : UUID <<FK, NULL>>
-    action : VARCHAR
-    details : JSONB
-    created_at : TIMESTAMP
+    action : VARCHAR(100)
+    details : JSONB <<NULL>>
+    created_at : TIMESTAMPTZ
 }
 
 entity "outbox_events" as outbox_events {
     * event_id : UUID <<PK>>
     --
-    aggregate_type : VARCHAR
+    aggregate_type : VARCHAR(100)
     aggregate_id : UUID
-    event_type : VARCHAR
+    event_type : VARCHAR(100)
     payload : JSONB
-    status : VARCHAR
+    status : VARCHAR(20)
     retry_count : INTEGER
-    created_at : TIMESTAMP
-    published_at : TIMESTAMP <<NULL>>
+    created_at : TIMESTAMPTZ
+    published_at : TIMESTAMPTZ <<NULL>>
 }
 users ||--o{ audit_log : performs
 bookings ||--o{ audit_log : audited in
@@ -85,5 +86,6 @@ rooms ||--o{ room_equipment : has
 equipment ||--o{ room_equipment : assigned to
 offices ||--o{ rooms : contains
 users ||--o{ bookings : creates
+users |o--o{ bookings : cancels
 rooms ||--o{ bookings : reserved for
 @enduml

@@ -34,7 +34,7 @@ Additional notification-email regression coverage:
 - invalid email is rejected with `422`;
 - `BookingCreated`, `BookingUpdated` and `BookingCancelled` events carry the intended recipient;
 - changing the notification email updates the booking and subsequent events;
-- existing bookings are safely backfilled from the owner email.
+- fresh database creation and seed data include a notification email for every booking.
 
 ## Defects discovered and fixed
 
