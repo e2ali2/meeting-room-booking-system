@@ -1,5 +1,10 @@
 const API='/api/v1';
-const state={role:localStorage.getItem('space-role'),user:null,offices:[],equipment:[],rooms:[],page:null,searchResults:null,filters:{equipment:[]}};
+const storage={
+  get:key=>{try{return window.localStorage?.getItem(key)||null}catch{return null}},
+  set:(key,value)=>{try{window.localStorage?.setItem(key,value)}catch{}},
+  remove:key=>{try{window.localStorage?.removeItem(key)}catch{}},
+};
+const state={role:storage.get('space-role'),user:null,offices:[],equipment:[],rooms:[],page:null,searchResults:null,filters:{equipment:[]}};
 const $=(s,r=document)=>r.querySelector(s);const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const initials=n=>(n||'?').split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase();
@@ -15,8 +20,8 @@ const roomBy=id=>state.rooms.find(x=>x.room_id===id)||{};const officeBy=id=>stat
 document.addEventListener('click',e=>{const login=e.target.closest('[data-login]');if(login)signIn(login.dataset.login);const picker=e.target.closest('[data-datetime-picker]');if(picker)openDateTimePicker(picker.dataset.datetimePicker)});
 $('#logout').onclick=signOut;$('#menu-toggle').onclick=()=>$('.sidebar').classList.toggle('open');
 
-async function signIn(role){state.role=role;localStorage.setItem('space-role',role);try{await bootstrap()}catch(e){toast(e.message,'error');signOut()}}
-function signOut(){localStorage.removeItem('space-role');state.role=null;state.user=null;$('#workspace').classList.add('hidden');$('#landing').classList.remove('hidden')}
+async function signIn(role){state.role=role;storage.set('space-role',role);try{await bootstrap()}catch(e){toast(e.message,'error');signOut()}}
+function signOut(){storage.remove('space-role');state.role=null;state.user=null;$('#workspace').classList.add('hidden');$('#landing').classList.remove('hidden')}
 async function bootstrap(){state.user=await api('/bookings/me');const common=await Promise.all([api('/offices'),api('/equipment'),api('/rooms')]);[state.offices,state.equipment,state.rooms]=common;$('#landing').classList.add('hidden');$('#workspace').classList.remove('hidden');renderShell();navigate(state.role==='ADMIN'?'dashboard':'search')}
 function renderShell(){const employee=[['search','⌕','Поиск комнат'],['bookings','▣','Мои бронирования']];const admin=[['dashboard','◫','Обзор'],['all-bookings','▤','Все бронирования'],['management','⚙','Управление']];$('#side-nav').innerHTML=(state.role==='ADMIN'?admin:employee).map(([id,icon,label])=>`<button class="nav-item" data-page="${id}"><span class="nav-symbol">${icon}</span>${label}</button>`).join('');$('#side-nav').onclick=e=>{const b=e.target.closest('[data-page]');if(b)navigate(b.dataset.page)};const u=state.user;$('#sidebar-user').innerHTML=`<span class="avatar">${initials(u.name)}</span><span><b>${esc(u.name)}</b><small>${u.role==='ADMIN'?'Администратор':'Сотрудник'}</small></span>`;$('#mobile-avatar').textContent=initials(u.name)}
 const pages={search:['Подбор пространства','Найти переговорную'],bookings:['Ваше расписание','Мои бронирования'],dashboard:['Администрирование','Обзор пространства'],'all-bookings':['Контроль загрузки','Все бронирования'],management:['Настройки каталога','Управление']};
