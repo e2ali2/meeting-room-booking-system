@@ -269,7 +269,7 @@ Implemented:
 - Serverless FastAPI entrypoint and direct UniSender Go delivery mode for the public demo
 
 
-### 7. Optional: asynchronous notifications
+Optional: asynchronous notifications
 
 RabbitMQ is required for asynchronous email notifications.
 
