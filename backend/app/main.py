@@ -2,7 +2,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.routers import admin, bookings, equipment, offices, rooms
@@ -45,5 +45,8 @@ if frontend_dir.exists():
     def frontend(request: Request, path: str = ""):
         host = request.headers.get("host", "").split(":", 1)[0].lower()
         if host in {"meetingsystem.ru", "www.meetingsystem.ru"}:
-            return FileResponse(frontend_dir / "custom-domain.html")
+            target = "https://meeting-room-booking-system-two.vercel.app/"
+            if request.url.query:
+                target += f"?{request.url.query}"
+            return RedirectResponse(target, status_code=307)
         return FileResponse(frontend_dir / "index.html")
