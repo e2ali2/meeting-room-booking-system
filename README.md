@@ -237,7 +237,6 @@ Detailed system analysis documentation is maintained in Confluence:
 - Jira
 - Confluence
 - Git / GitHub
-- Docker
 
 ## Prototype Status
 
@@ -267,32 +266,6 @@ Implemented:
 - Admin booking registry, resource management and analytics dashboard
 
 ## How to Run
-
-## Production deployment with Docker
-
-The production stack is defined in `docker-compose.prod.yml` and includes the
-FastAPI application, PostgreSQL, RabbitMQ, the outbox publisher, the email
-worker, and Caddy for automatic HTTPS.
-
-1. Copy `.env.production.example` to `.env.production` on the server.
-2. Replace every placeholder with production-only secrets. Never commit
-   `.env.production`.
-3. Point the `A` records for `meetingsystem.ru` and `www.meetingsystem.ru` to
-   the server's public IPv4 address.
-4. Start the stack:
-
-   ```bash
-   docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
-   ```
-
-5. Verify `https://meetingsystem.ru/api/v1/health` and review service status:
-
-   ```bash
-   docker compose --env-file .env.production -f docker-compose.prod.yml ps
-   ```
-
-Caddy obtains and renews TLS certificates automatically after DNS points to
-the server and inbound ports 80 and 443 are open.
 
 ### 1. Clone the repository
 
