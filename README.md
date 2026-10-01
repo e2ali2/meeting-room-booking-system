@@ -206,6 +206,8 @@ Example traceability chain:
 
 ## Jira
 
+[Meeting Room Booking System — Jira board](https://nickmartirosian.atlassian.net/jira/software/projects/MRBS/boards/1?filter=&groupBy=none)
+
 The Jira backlog uses the hierarchy:
 
 `Epic -> Story -> Subtask`
