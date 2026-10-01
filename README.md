@@ -4,6 +4,8 @@ Portfolio project focused on system analysis, architecture design and implementa
 
 The system allows employees to search for available meeting rooms, create and manage bookings, while administrators can manage offices, rooms and bookings.
 
+Live demo: [https://meetingsystem.ru](https://meetingsystem.ru)
+
 ## Project Goal
 
 Design a reliable internal web service that provides a unified meeting room booking process, prevents conflicting reservations and supports reliable asynchronous notifications.
@@ -327,6 +329,14 @@ Swagger UI:
 Web application:
 
 `http://127.0.0.1:8000/`
+
+If the web application does not open from the browser address bar:
+
+- Make sure `uvicorn app.main:app --reload` is still running in the `backend` directory.
+- Enter the full address exactly as `http://127.0.0.1:8000/` (including `http://` and the final port), rather than opening `index.html` directly.
+- Wait for the terminal to show that the application startup is complete, then refresh the page.
+- If `127.0.0.1` is unavailable in your browser, try `http://localhost:8000/`.
+- Check that no other application is already using port `8000`; if it is, start Uvicorn on another port and use the same port in the browser address, for example `uvicorn app.main:app --reload --port 8001` and `http://127.0.0.1:8001/`.
 
 The landing page offers two demo identities: Employee and Administrator. Demo
 Auth is enabled by `DEMO_AUTH_ENABLED=true`; it resolves seeded users and sends
