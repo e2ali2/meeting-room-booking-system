@@ -200,7 +200,6 @@ def send_email_via_unisender(message, event_id=None):
             "from_name": EMAIL_FROM_NAME,
             "track_links": 0,
             "track_read": 0,
-            "skip_unsubscribe": 1,
         }
     }
     if event_id:
