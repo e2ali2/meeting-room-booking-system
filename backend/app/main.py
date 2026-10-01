@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -42,5 +42,8 @@ if frontend_dir.exists():
     @app.get("/", include_in_schema=False)
     @app.get("/app", include_in_schema=False)
     @app.get("/app/{path:path}", include_in_schema=False)
-    def frontend(path: str = ""):
+    def frontend(request: Request, path: str = ""):
+        host = request.headers.get("host", "").split(":", 1)[0].lower()
+        if host in {"meetingsystem.ru", "www.meetingsystem.ru"}:
+            return FileResponse(frontend_dir / "custom-domain.html")
         return FileResponse(frontend_dir / "index.html")
