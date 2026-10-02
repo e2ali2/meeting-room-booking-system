@@ -1,56 +1,59 @@
 @startuml
-title C4 Level 2 - Container Diagram\nMeeting Room Booking System
+title C4 Level 3 — Component Diagram\nFastAPI Backend
 
 top to bottom direction
 
-skinparam linetype polyline
-skinparam nodesep 65
+skinparam linetype ortho
+skinparam nodesep 70
 skinparam ranksep 55
 skinparam rectangle {
     Padding 15
 }
 
-actor "Employee" as Employee
-actor "Administrator" as Admin
+rectangle "Web Frontend\n[External Container]" as Frontend
 
-rectangle "Meeting Room Booking System" {
-    rectangle "Web Frontend\n[HTML, CSS, JavaScript]\nEmployee and administrator UI" as Frontend
+rectangle "FastAPI Backend" {
 
-    rectangle "Backend API\n[Python, FastAPI]\nREST API, demo authentication,\nbusiness rules and audit logging" as Backend
+    rectangle "Bookings API\nCreate, modify, cancel\nand view bookings" as Bookings
 
-    rectangle "Outbox Publisher\n[Python worker]\nPublishes pending booking events" as Publisher
+    rectangle "Room Availability API\nSearch available rooms\nand apply filters" as Rooms
 
-    rectangle "Email Worker\n[Python worker]\nConsumes events and sends email" as Worker
+    rectangle "Office & Equipment API\nReference data" as Reference
+
+    rectangle "Admin API\nManage offices, rooms,\nequipment and bookings" as Admin
+
+    rectangle "Booking Validation\nBusiness rules and\navailability checks" as Validation
+
+    rectangle "Audit Logging\nRecords administrative actions" as Audit
+
+    rectangle "Outbox Event Creation\nCreates notification events" as Outbox
+
+    rectangle "Database Access\nSQLAlchemy" as Persistence
 }
 
-database "PostgreSQL\n[Neon]\nUsers, rooms, bookings,\naudit log and outbox events" as DB
+database "PostgreSQL\n[External Container]" as DB
 
-queue "RabbitMQ\n[Message broker]\nBooking events, email queue and DLQ" as RabbitMQ
+Frontend --> Bookings : REST
+Frontend --> Rooms : REST
+Frontend --> Reference : REST
+Frontend --> Admin : REST
 
-rectangle "Email Provider\n[SMTP / UniSender Go API]" as Email <<External System>>
+Bookings --> Validation
+Bookings --> Outbox
+Bookings --> Persistence
 
-Employee --> Frontend : Uses booking features\n[HTTPS]
-Admin --> Frontend : Uses administration features\n[HTTPS]
+Rooms --> Persistence
 
-Frontend --> Backend : Calls REST API\n[JSON/HTTPS]
-Backend --> DB : Reads/writes data and outbox\nin one transaction [SQL]
+Reference --> Persistence
 
-Publisher --> DB : Polls PENDING outbox events [SQL]
-Publisher --> RabbitMQ : Publishes booking.created,\nbooking.updated and booking.cancelled [AMQP]
-RabbitMQ --> Worker : Delivers notification events [AMQP]
-Worker --> DB : Loads user, room and office context [SQL]
-Worker --> Email : Sends notification [SMTP]
+Admin --> Validation
+Admin --> Audit
+Admin --> Persistence
 
-Backend --> Email : Direct delivery on Vercel [HTTPS]
+Validation --> Persistence
+Audit --> Persistence
+Outbox --> Persistence
 
-note bottom of Backend
-  The current public demo uses role-based Demo Auth.
-  Corporate authentication is a planned replacement.
-end note
-
-note bottom of RabbitMQ
-  The asynchronous RabbitMQ path is optional locally.
-  The Vercel deployment uses direct UniSender API delivery.
-end note
+Persistence --> DB
 
 @enduml
