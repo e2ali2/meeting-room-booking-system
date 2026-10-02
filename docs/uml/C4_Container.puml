@@ -1,59 +1,44 @@
 @startuml
-title C4 Level 3 — Component Diagram\nFastAPI Backend
+title C4 Level 2 - Container Diagram\nMeeting Room Booking System
 
 top to bottom direction
 
 skinparam linetype ortho
 skinparam nodesep 70
-skinparam ranksep 55
+skinparam ranksep 60
 skinparam rectangle {
     Padding 15
 }
 
-rectangle "Web Frontend\n[External Container]" as Frontend
+actor "Employee" as Employee
+actor "Administrator" as Admin
 
-rectangle "FastAPI Backend" {
+Employee -[hidden]right-> Admin
 
-    rectangle "Bookings API\nCreate, modify, cancel\nand view bookings" as Bookings
+rectangle "Meeting Room Booking System" {
+    rectangle "Web Frontend\nHTML / CSS / JavaScript" as Frontend
+    rectangle "Backend API\nFastAPI" as Backend
 
-    rectangle "Room Availability API\nSearch available rooms\nand apply filters" as Rooms
+    rectangle "Outbox Publisher\nPython worker" as Publisher
+    queue "RabbitMQ" as RabbitMQ
+    rectangle "Email Worker\nPython worker" as Worker
 
-    rectangle "Office & Equipment API\nReference data" as Reference
-
-    rectangle "Admin API\nManage offices, rooms,\nequipment and bookings" as Admin
-
-    rectangle "Booking Validation\nBusiness rules and\navailability checks" as Validation
-
-    rectangle "Audit Logging\nRecords administrative actions" as Audit
-
-    rectangle "Outbox Event Creation\nCreates notification events" as Outbox
-
-    rectangle "Database Access\nSQLAlchemy" as Persistence
+    Backend -[hidden]right-> Publisher
 }
 
-database "PostgreSQL\n[External Container]" as DB
+database "PostgreSQL\nNeon" as DB
+rectangle "Email Provider\nUniSender / SMTP" as Email <<External System>>
 
-Frontend --> Bookings : REST
-Frontend --> Rooms : REST
-Frontend --> Reference : REST
-Frontend --> Admin : REST
+Employee -down-> Frontend
+Admin -down-> Frontend
+Frontend -right-> Backend : REST
+Backend -down-> DB : SQL
 
-Bookings --> Validation
-Bookings --> Outbox
-Bookings --> Persistence
+Publisher -down-> DB
+Publisher -right-> RabbitMQ
+RabbitMQ -right-> Worker
+Worker -right-> Email
 
-Rooms --> Persistence
-
-Reference --> Persistence
-
-Admin --> Validation
-Admin --> Audit
-Admin --> Persistence
-
-Validation --> Persistence
-Audit --> Persistence
-Outbox --> Persistence
-
-Persistence --> DB
+Backend -down-> Email
 
 @enduml

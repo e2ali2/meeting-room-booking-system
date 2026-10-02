@@ -58,7 +58,7 @@ Main components:
 - Email Worker
 - SMTP Service
 - Responsive web frontend served by FastAPI
-- Demo Auth role selector designed to be replaced by Corporate Auth
+- Demo Auth role selector for the portfolio environment
 
 Notification flow:
 
@@ -300,3 +300,12 @@ meeting-room-booking/
 ├── README.md
 └── .gitignore
 ```
+
+## Local Run
+
+1. Create and activate a virtual environment:
+   `python -m venv .venv` and `.\.venv\Scripts\Activate.ps1`
+2. Install dependencies: `pip install -r requirements.txt`
+3. Create `.env` with `DATABASE_URL=<PostgreSQL connection string>` and `DEMO_AUTH_ENABLED=true`.
+4. Start the application: `uvicorn index:app --reload`
+5. Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Entering the address alone does not start the server; run the command from step 4 first.
