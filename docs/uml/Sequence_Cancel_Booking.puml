@@ -1,28 +1,67 @@
 @startuml
-
-title Cancel Booking — Sequence Diagram
+title Cancel Own Booking — Sequence Diagram
 
 actor Employee
-participant Frontend
-participant "Booking Service" as BookingService
+participant "Web Frontend" as Frontend
+participant "FastAPI Bookings API" as API
 database PostgreSQL
-Employee -> Frontend : Open booking
-Frontend -> BookingService : GET /bookings/{id}
-BookingService -> PostgreSQL : Get booking
-PostgreSQL --> BookingService : Booking data
-BookingService --> Frontend : 200 OK + booking data
+participant "Outbox Publisher" as Publisher
+queue RabbitMQ
+participant "Email Worker" as Worker
+participant "Email Provider\n(SMTP / UniSender Go)" as Email
 
-Employee -> Frontend : Cancel booking
-Frontend -> BookingService : PATCH /bookings/{id}\nstatus=CANCELLED
-BookingService -> BookingService : Check cancellation rights\nand 30-minute rule
-alt Cancellation is allowed
-    BookingService -> PostgreSQL : Set status = CANCELLED\nSave cancelled_at and cancelled_by\nCreate outbox event
-    PostgreSQL --> BookingService : Transaction committed
-    BookingService --> Frontend : 200 OK
+Employee -> Frontend : Open "My bookings"
+Frontend -> API : GET /api/v1/bookings/my\nX-Demo-Role: EMPLOYEE
+API -> PostgreSQL : Select employee bookings
+PostgreSQL --> API : Booking list
+API --> Frontend : 200 OK + bookings
+
+Employee -> Frontend : Confirm cancellation
+Frontend -> API : POST /api/v1/bookings/{booking_id}/cancel\nX-Demo-Role: EMPLOYEE
+API -> PostgreSQL : Load booking by ID
+PostgreSQL --> API : Booking or no result
+
+alt Booking does not exist
+    API --> Frontend : 404 BOOKING_NOT_FOUND
+else Booking belongs to another user
+    API --> Frontend : 403 FORBIDDEN
+else Booking is not ACTIVE
+    API --> Frontend : 409 BOOKING_NOT_ACTIVE
+else Less than 30 minutes remain
+    API --> Frontend : 409 BOOKING_CANCELLATION_TOO_LATE
+else Cancellation is allowed
+    API -> PostgreSQL : In one transaction:\nset status = CANCELLED;\nset cancelled_at, cancelled_by, updated_at;\ninsert BookingCancelled outbox event (PENDING)
+    PostgreSQL --> API : Commit successful
+
+    alt Serverless mode: NOTIFICATION_DELIVERY=unisender_api
+        API -> Email : Send BookingCancelled email [HTTPS]
+        Email --> API : Delivery result
+        note right of API
+          An email failure is logged and does not
+          roll back the committed cancellation.
+        end note
+    else Asynchronous RabbitMQ mode
+        API -> API : Direct sender is skipped
+    end
+
+    API --> Frontend : 200 OK + cancelled booking
     Frontend --> Employee : Show cancellation success
-
-else Cancellation is not allowed
-    BookingService --> Frontend : 409 Conflict\nBOOKING_CANCELLATION_TOO_LATE
-    Frontend --> Employee : Show cancellation error
 end
+
+opt Asynchronous notification processing
+    Publisher -> PostgreSQL : Read PENDING outbox event
+    PostgreSQL --> Publisher : BookingCancelled event
+    Publisher -> RabbitMQ : Publish booking.cancelled
+    Publisher -> PostgreSQL : Mark event PUBLISHED
+    RabbitMQ -> Worker : Deliver BookingCancelled
+    Worker -> PostgreSQL : Load user, room and office context
+    PostgreSQL --> Worker : Notification context
+    Worker -> Email : Send cancellation email [SMTP]
+    alt Email sent
+        Worker -> RabbitMQ : ACK
+    else Email failed
+        Worker -> RabbitMQ : NACK (requeue=false)\nRoute to DLQ
+    end
+end
+
 @enduml

@@ -1,59 +1,56 @@
 @startuml
-title C4 Level 3 — Component Diagram\nFastAPI Backend
+title C4 Level 2 — Container Diagram\nMeeting Room Booking System
 
-top to bottom direction
+left to right direction
 
 skinparam linetype ortho
-skinparam nodesep 70
+skinparam nodesep 65
 skinparam ranksep 55
 skinparam rectangle {
     Padding 15
 }
 
-rectangle "Web Frontend\n[External Container]" as Frontend
+actor "Employee" as Employee
+actor "Administrator" as Admin
 
-rectangle "FastAPI Backend" {
+rectangle "Meeting Room Booking System" {
+    rectangle "Web Frontend\n[HTML, CSS, JavaScript]\nEmployee and administrator UI" as Frontend
 
-    rectangle "Bookings API\nCreate, modify, cancel\nand view bookings" as Bookings
+    rectangle "Backend API\n[Python, FastAPI]\nREST API, demo authentication,\nbusiness rules and audit logging" as Backend
 
-    rectangle "Room Availability API\nSearch available rooms\nand apply filters" as Rooms
+    rectangle "Outbox Publisher\n[Python worker]\nPublishes pending booking events" as Publisher
 
-    rectangle "Office & Equipment API\nReference data" as Reference
-
-    rectangle "Admin API\nManage offices, rooms,\nequipment and bookings" as Admin
-
-    rectangle "Booking Validation\nBusiness rules and\navailability checks" as Validation
-
-    rectangle "Audit Logging\nRecords administrative actions" as Audit
-
-    rectangle "Outbox Event Creation\nCreates notification events" as Outbox
-
-    rectangle "Database Access\nSQLAlchemy" as Persistence
+    rectangle "Email Worker\n[Python worker]\nConsumes events and sends email" as Worker
 }
 
-database "PostgreSQL\n[External Container]" as DB
+database "PostgreSQL\n[Neon]\nUsers, rooms, bookings,\naudit log and outbox events" as DB
 
-Frontend --> Bookings : REST
-Frontend --> Rooms : REST
-Frontend --> Reference : REST
-Frontend --> Admin : REST
+queue "RabbitMQ\n[Message broker]\nBooking events, email queue and DLQ" as RabbitMQ
 
-Bookings --> Validation
-Bookings --> Outbox
-Bookings --> Persistence
+rectangle "Email Provider\n[SMTP / UniSender Go API]" as Email <<External System>>
 
-Rooms --> Persistence
+Employee --> Frontend : Uses booking features\n[HTTPS]
+Admin --> Frontend : Uses administration features\n[HTTPS]
 
-Reference --> Persistence
+Frontend --> Backend : Calls REST API\n[JSON/HTTPS]
+Backend --> DB : Reads and writes application data;\nstores booking and outbox event\nin one transaction [SQL]
 
-Admin --> Validation
-Admin --> Audit
-Admin --> Persistence
+Publisher --> DB : Polls PENDING outbox events [SQL]
+Publisher --> RabbitMQ : Publishes booking.created,\nbooking.updated and booking.cancelled [AMQP]
+RabbitMQ --> Worker : Delivers notification events [AMQP]
+Worker --> DB : Loads user, room and office context [SQL]
+Worker --> Email : Sends notification [SMTP]
 
-Validation --> Persistence
-Audit --> Persistence
-Outbox --> Persistence
+Backend --> Email : Sends notification directly\nin the serverless deployment [HTTPS]
 
-Persistence --> DB
+note bottom of Backend
+  The current public demo uses role-based Demo Auth.
+  Corporate authentication is a planned replacement.
+end note
+
+note bottom of RabbitMQ
+  The asynchronous RabbitMQ path is optional locally.
+  The Vercel deployment uses direct UniSender API delivery.
+end note
 
 @enduml
