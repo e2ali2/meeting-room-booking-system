@@ -1,5 +1,5 @@
 @startuml
-title Cancel Own Booking — Sequence Diagram
+title Cancel Own Booking - Sequence Diagram
 
 actor Employee
 participant "Web Frontend" as Frontend
