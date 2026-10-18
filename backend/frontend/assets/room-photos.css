@@ -1,0 +1,8 @@
+.room-image.has-photo{height:190px;padding:16px;background:#dce5df;isolation:isolate}
+.room-image.has-photo:before{inset:0;width:auto;height:auto;border-radius:0;background:linear-gradient(180deg,rgba(16,43,36,.19),transparent 60%);z-index:1;pointer-events:none}
+.room-image.has-photo:after{display:none}
+.room-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;transition:transform .45s ease;z-index:0}
+.room-card:hover .room-photo{transform:scale(1.035)}
+.room-image.has-photo .room-badge{display:inline-block;background:rgba(250,252,247,.94);color:#23483e;border:1px solid rgba(255,255,255,.6);box-shadow:0 3px 12px rgba(16,43,36,.08)}
+@media(prefers-reduced-motion:reduce){.room-photo{transition:none}.room-card:hover .room-photo{transform:none}}
+@media(max-width:600px){.room-image.has-photo{height:180px}}
