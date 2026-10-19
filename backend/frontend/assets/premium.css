@@ -49,6 +49,8 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .btn.secondary{background:#fdfdf9;border-color:#dce0d3;color:#2d4436}
 .btn.secondary:hover{background:#f0f2e8;box-shadow:none}
 .btn.danger{background:#f7eeea;color:#a05b50}
+.row-actions .cancel-booking{background:#fbeceb;color:#b65d57}
+.row-actions .cancel-booking:hover{background:#f6dcd9;color:#a44a44}
 .role-card{background:rgba(253,253,249,.8);border-color:#dce0d3;transition:background-color .2s,box-shadow .2s}
 .role-card.primary{background:#173f35;border-color:#173f35}
 .role-card:hover{transform:none;box-shadow:0 5px 18px rgba(23,63,53,.08)}
