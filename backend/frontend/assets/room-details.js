@@ -42,10 +42,8 @@
       text:'Переговорная для совместной работы, встреч и обсуждения проектов. Выберите удобное время и соберите команду за одним столом.',
       uses:['Рабочие встречи','Обсуждение проектов'],photo:'atlas'
     };
-    const available = state.page === 'search' && state.searchContext && state.searchResults?.some(r => r.room_id === id);
     const photo = room.photo_url || `/assets/rooms/${story.photo}.jpg`;
     const equipment = (room.equipment || []).map(e => `<span>${equipmentIcon(e.name)} ${esc(equipmentName(e.name))}</span>`).join('');
-    const time = available ? `${fmtDate(state.searchContext.start_time)} · ${fmtTime(state.searchContext.start_time)}–${fmtTime(state.searchContext.end_time)} МСК` : 'Выберите дату и время, чтобы проверить доступность.';
     openModal(room.name, office.name || 'Переговорная', `
       <div class="room-detail-hero"><img src="${esc(photo)}" alt="Интерьер переговорной ${esc(room.name)}" onerror="this.remove()"><span>ПРОСТРАНСТВО ДЛЯ ВСТРЕЧ</span></div>
       <div class="room-detail-content">
@@ -54,8 +52,8 @@
         <div class="room-detail-tags">${story.uses.map(t=>`<span>${esc(t)}</span>`).join('')}</div>
         <section class="room-detail-section"><h5>Всё для вашей встречи</h5><div class="room-detail-equipment">${equipment || '<span>Стандартное оснащение</span>'}</div></section>
         <section class="room-detail-section room-detail-address"><span aria-hidden="true">⌖</span><div><h5>${esc(office.name || 'Офис')}</h5><p>${esc(office.address || 'Адрес уточняется')} · ${esc(room.floor)} этаж</p></div></section>
-        <section class="room-detail-rules"><h5>Перед бронированием</h5><p>Встречи от 15 минут до 4 часов, шаг — 15 минут. Время указано по Москве. Изменить или отменить свою бронь можно не позднее чем за 30 минут до начала.</p></section>
-      </div><footer class="room-detail-footer"><div><b>${available?'Свободна в выбранное время':'Спланируйте встречу'}</b><p>${esc(time)}</p></div><button type="button" class="btn" id="room-detail-action">${available?'Забронировать':'Выбрать время'} →</button></footer>
+        <section class="room-detail-section room-schedule" id="room-schedule" aria-label="Расписание переговорной"></section>
+      </div>
     `);
     const modal = document.querySelector('#modal-root .modal');
     modal.classList.add('room-details-modal');
@@ -63,20 +61,7 @@
     modal.setAttribute('aria-labelledby','room-detail-title');
     modal.querySelector('.modal-head button').setAttribute('aria-label','Закрыть описание');
     modal.querySelector('.modal-head button').focus({preventScroll:true});
-    document.getElementById('room-detail-action').onclick = () => {
-      closeModal();
-      if (available) return openBooking(id);
-      if (state.page !== 'search') navigate('search');
-      const form = document.getElementById('search-form');
-      if (form) {
-        const select = form.querySelector('[name="office_id"]');
-        select.value = room.office_id;
-        select.dispatchEvent(new Event('change',{bubbles:true}));
-        form.scrollIntoView({behavior:'smooth',block:'center'});
-        form.querySelector('[data-datetime-picker]')?.focus({preventScroll:true});
-      }
-      toast('Выберите время и нажмите «Найти комнату»');
-    };
+    mountRoomSchedule(document.getElementById('room-schedule'), id);
   };
   document.addEventListener('click',event=>{
     const card=event.target.closest('[data-room-details]');
