@@ -62,9 +62,9 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .availability{color:#4c7557;font-weight:600}
 .status{font-weight:600}.status.active{background:#e8eee3;color:#3e6b49}.status.completed{background:#e6ebe5;color:#4a6250}.status.cancelled,.status.inactive{background:#f3e9e4;color:#9a6559}
 .data-table th{background:#f4f5ef;color:#6c7b6e}.data-table tr:hover td{background:#f7f8f2}
-.bar{background:#8a9d82;border-radius:5px 5px 1px 1px}
+.bar{background:#244f3e;border-radius:5px 5px 1px 1px}
 .bar-group:nth-child(2) .bar{background:#d0b5a4}
-.bar-group:nth-child(3) .bar{background:#244f3e}
+.bar-group:nth-child(3) .bar{background:#a4aaa7}
 .bar-group>b{font-size:12px;color:#2e4938;font-weight:600;font-variant-numeric:tabular-nums}
 .bar-group{color:#6e7c6f;font-size:10px}
 .date-tile{background:#ecf0e3}.date-tile b{font-family:Georgia,'Times New Roman',serif;font-weight:400}
