@@ -19,6 +19,7 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .brand{font-weight:700;letter-spacing:-.6px}
 .brand-mark,.sidebar .brand-mark,.avatar,.role-card.primary .role-icon{background:#d8dfb7;color:#173f35}
 .landing .brand-mark{background:#173f35;color:#eef0dd}
+.sidebar .brand-mark,.mobile-header .brand-mark{background:#cbb681;color:#173f35}
 .topbar{background:rgba(247,246,240,.94)}
 .hero h1{font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:-3px}
 .hero h1 em{color:#39614e;font-style:italic}
