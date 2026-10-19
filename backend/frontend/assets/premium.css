@@ -10,6 +10,8 @@
   --line:#e0e1d7;
   --danger:#a45d53;
   --shadow:0 16px 46px rgba(24,45,38,.11);
+  --champagne:#b29c72;
+  --champagne-line:rgba(178,156,114,.28);
 }
 body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .landing{background:radial-gradient(ellipse at 85% 20%,rgba(211,218,188,.22),transparent 48%),#f6f4ee}
@@ -76,5 +78,20 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .success-ticket-top span{background:#e0e7ce;color:#35543e}
 .modal-backdrop{background:rgba(14,33,26,.5)}
 .toast{background:#244c3c}
+/* Matte champagne appears only in small details, never as a shiny surface. */
+.topbar{border-bottom-color:var(--champagne-line)}
+.nav-item.active{box-shadow:inset 2px 0 0 var(--champagne)}
+.sidebar-footer{border-top-color:rgba(205,186,145,.19)}
+.orbit{border-color:rgba(178,156,114,.2)}
+.floating-card,.demo-pill{border-color:var(--champagne-line)}
+.room-image.has-photo .room-badge{border-color:rgba(210,193,157,.56)}
+.stats-grid-completed .stat-card:nth-child(4){border-color:rgba(178,156,114,.4)}
+.room-detail-tags span{border-color:var(--champagne-line)}
+.booking-success-ticket{border-color:rgba(178,156,114,.35)}
+.success-ticket-date{border-top-color:rgba(178,156,114,.4)}
+.booking-success-check circle{stroke:#c3b28b}
+.btn:not(.danger):hover{box-shadow:0 3px 10px rgba(23,63,53,.1),inset 0 0 0 1px rgba(205,186,145,.28)}
+.space-select-trigger[aria-expanded=true]{border-color:#aa9875;box-shadow:0 0 0 3px rgba(178,156,114,.1)}
+.space-select-menu{border-color:rgba(178,156,114,.35)}
 @media(max-width:760px){.hero h1{letter-spacing:-1.6px}.topbar h2{font-size:27px}}
 @media(prefers-reduced-motion:reduce){.room-card-interactive:hover{transform:none}.room-card:hover .room-photo{transform:none}.btn,.role-card{transition:none}}

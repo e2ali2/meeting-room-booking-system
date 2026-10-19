@@ -27,7 +27,33 @@ function signOut(){storage.remove('space-role');try{window.history.replaceState(
 async function bootstrap(){state.user=await api('/bookings/me');const common=await Promise.all([api('/offices'),api('/equipment'),api('/rooms')]);[state.offices,state.equipment,state.rooms]=common;$('#landing').classList.add('hidden');$('#workspace').classList.remove('hidden');renderShell();navigate(state.role==='ADMIN'?'dashboard':'search')}
 function renderShell(){const employee=[['search','⌕','Поиск комнат'],['bookings','▣','Мои бронирования']];const admin=[['dashboard','◫','Обзор'],['all-bookings','▤','Все бронирования'],['management','⚙','Управление']];$('#side-nav').innerHTML=(state.role==='ADMIN'?admin:employee).map(([id,icon,label])=>`<button class="nav-item" data-page="${id}"><span class="nav-symbol">${icon}</span>${label}</button>`).join('');$('#side-nav').onclick=e=>{const b=e.target.closest('[data-page]');if(b)navigate(b.dataset.page)};const u=state.user;$('#sidebar-user').innerHTML=`<span class="avatar">${initials(u.name)}</span><span><b>${esc(u.name)}</b><small>${u.role==='ADMIN'?'Администратор':'Сотрудник'}</small></span>`;$('#mobile-avatar').textContent=initials(u.name)}
 const pages={search:['Подбор пространства','Найти переговорную'],bookings:['Ваше расписание','Мои бронирования'],dashboard:['Администрирование','Обзор пространства'],'all-bookings':['Контроль загрузки','Все бронирования'],management:['Настройки каталога','Управление']};
-async function navigate(page){state.page=page;$$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.page===page));$('.sidebar').classList.remove('open');$('#page-kicker').textContent=pages[page][0];$('#page-title').textContent=pages[page][1];$('#topbar-actions').innerHTML='';$('#page-content').innerHTML=loading();try{if(page==='search')renderSearch();if(page==='bookings')await renderMyBookings();if(page==='dashboard')await renderDashboard();if(page==='all-bookings')await renderAllBookings();if(page==='management')await renderManagement()}catch(e){$('#page-content').innerHTML=`<div class="error-state"><b>Что-то пошло не так</b>${esc(e.message)}</div>`}}
+let navigationRevision=0;
+async function navigate(page){
+  const changed=state.page!==page;
+  const revision=++navigationRevision;
+  state.page=page;
+  $$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.page===page));
+  $('.sidebar').classList.remove('open');
+  $('#page-kicker').textContent=pages[page][0];
+  $('#page-title').textContent=pages[page][1];
+  $('#topbar-actions').innerHTML='';
+  $('#page-content').getAnimations().forEach(animation=>animation.cancel());
+  $('#page-content').innerHTML=loading();
+  try{
+    if(page==='search')renderSearch();
+    if(page==='bookings')await renderMyBookings();
+    if(page==='dashboard')await renderDashboard();
+    if(page==='all-bookings')await renderAllBookings();
+    if(page==='management')await renderManagement();
+  }catch(e){
+    if(revision!==navigationRevision||state.page!==page)return;
+    $('#page-content').innerHTML=`<div class="error-state"><b>Что-то пошло не так</b>${esc(e.message)}</div>`;
+  }
+  if(revision!==navigationRevision||state.page!==page||!changed)return;
+  if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    $('#page-content').animate([{opacity:.55},{opacity:1}],{duration:210,easing:'ease-out'});
+  }
+}
 
 function bookingDate(value){return new Date(typeof value==='string'&&!/(Z|[+-]\d{2}:\d{2})$/.test(value)?value+'+03:00':value)}
 function localInput(value){const d=bookingDate(value);return new Date(d.getTime()+3*60*60*1000).toISOString().slice(0,16)}
