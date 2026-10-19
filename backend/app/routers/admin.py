@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.auth import require_admin
-from app.routers.bookings import check_conflict, check_room, validate_booking_time
+from app.routers.bookings import MOSCOW_TZ, check_conflict, check_room, validate_booking_time
 from app.models import AuditLog, Booking, Equipment, Office, OutboxEvent, Room, RoomEquipment, User
 from app.workers.email_worker import send_direct_notification
 from app.schemas import (
@@ -90,7 +90,7 @@ def get_all_bookings(
     if office_id is not None:
         query = query.join(Room, Booking.room_id == Room.room_id).where(Room.office_id == office_id)
     if booking_date is not None:
-        query = query.where(func.date(Booking.start_time) == booking_date)
+        query = query.where(func.date(func.timezone("Europe/Moscow", Booking.start_time)) == booking_date)
 
     bookings = db.scalars(query.order_by(Booking.start_time.desc())).all()
 
@@ -541,7 +541,7 @@ def booking_analytics(x_demo_role: str | None = Header(default=None, alias="X-De
 
     now = datetime.now(timezone.utc)
     upcoming = db.scalar(select(func.count()).select_from(Booking).where(Booking.status == "ACTIVE", Booking.start_time >= now))
-    today = db.scalar(select(func.count()).select_from(Booking).where(func.date(Booking.start_time) == now.date()))
+    today = db.scalar(select(func.count()).select_from(Booking).where(func.date(func.timezone("Europe/Moscow", Booking.start_time)) == now.astimezone(MOSCOW_TZ).date()))
     return {
         "total_bookings": total,
         "active_bookings": active,

@@ -1,0 +1,5 @@
+.stats-grid.stats-grid-completed{grid-template-columns:repeat(5,minmax(0,1fr))}
+.stats-grid-completed .stat-card{min-width:0}
+@media(max-width:1200px){.stats-grid.stats-grid-completed{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:900px){.stats-grid.stats-grid-completed{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.stats-grid.stats-grid-completed{grid-template-columns:1fr}}

@@ -1,0 +1,98 @@
+/* Optional visual layer. Disable this stylesheet to restore the baseline design.
+   Layout, spacing and the existing icon set deliberately stay unchanged. */
+:root{
+  --ink:#182d28;
+  --muted:#68766e;
+  --paper:#f5f3ed;
+  --green:#173f35;
+  --green2:#285c4c;
+  --lime:#d8dfb7;
+  --line:#e0e1d7;
+  --danger:#a45d53;
+  --shadow:0 16px 46px rgba(24,45,38,.11);
+  --champagne:#b29c72;
+  --champagne-line:rgba(178,156,114,.28);
+}
+body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.landing{background:radial-gradient(ellipse at 85% 20%,rgba(211,218,188,.22),transparent 48%),#f6f4ee}
+.sidebar,.mobile-header{background:#12382f}
+.brand{font-weight:700;letter-spacing:-.6px}
+.brand-mark,.sidebar .brand-mark,.avatar,.role-card.primary .role-icon{background:#d8dfb7;color:#173f35}
+.landing .brand-mark{background:#173f35;color:#eef0dd}
+.topbar{background:rgba(247,246,240,.94)}
+.hero h1{font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:-3px}
+.hero h1 em{color:#39614e;font-style:italic}
+.hero-text{color:#617168}
+.eyebrow,.page-kicker{color:#607862;font-weight:600;letter-spacing:1.6px}
+.topbar h2{font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:29px;letter-spacing:-.7px}
+.section-head h3,.table-toolbar h3{font-weight:600;letter-spacing:-.35px}
+.room-title h4{font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:23px;letter-spacing:-.3px}
+.room-details-modal .modal-head h3{font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:-.4px}
+.room-detail-content h4,.booking-success-content h4{font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:-.35px}
+.field label,.stat-card>span{font-weight:600;text-transform:none;letter-spacing:.15px;color:#65746a}
+.field label{font-size:10px}
+.stat-card>span{font-size:11px}
+.stat-card b{font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:34px;letter-spacing:-1px;font-variant-numeric:lining-nums tabular-nums}
+.stat-card small{color:#687b64;font-size:10px}
+.stat-card{background:#fdfcf8;border-color:#e1e2d8;box-shadow:0 2px 5px rgba(29,49,39,.015)}
+.stats-grid-completed .stat-card:nth-child(4){background:#edf0e4;border-color:#d9dfcd}
+.room-card,.table-card,.chart-card,.search-panel,.booking-card{background:#fdfdfa;border-color:#e0e2d8}
+.search-panel{box-shadow:0 5px 18px rgba(30,53,40,.025)}
+.room-photo,.room-detail-hero img{filter:saturate(.83) contrast(.97) brightness(1.025)}
+.room-image.has-photo .room-badge{background:rgba(248,247,239,.94);color:#244638;border-color:rgba(255,255,255,.5);font-weight:500}
+.room-equip span{background:#f0f1e9;color:#536b59}
+.room-detail-tags span{color:#65775e;border-color:#dce0d2}
+.room-detail-equipment span{background:#edf0e5;color:#36553f}
+.room-detail-address,.booking-success-ticket{background:#f1f2e9}
+.btn{background:#173f35;font-weight:600;transition:background-color .18s,box-shadow .18s}
+.btn:hover{background:#285c4c;box-shadow:0 3px 10px rgba(23,63,53,.12)}
+.btn.secondary{background:#fdfdf9;border-color:#dce0d3;color:#2d4436}
+.btn.secondary:hover{background:#f0f2e8;box-shadow:none}
+.btn.danger{background:#f7eeea;color:#a05b50}
+.role-card{background:rgba(253,253,249,.8);border-color:#dce0d3;transition:background-color .2s,box-shadow .2s}
+.role-card.primary{background:#173f35;border-color:#173f35}
+.role-card:hover{transform:none;box-shadow:0 5px 18px rgba(23,63,53,.08)}
+.room-card-interactive:hover{transform:translateY(-2px);box-shadow:0 8px 23px rgba(26,50,39,.075)}
+.room-card:hover .room-photo{transform:scale(1.02)}
+.floating-card{box-shadow:0 8px 25px rgba(25,57,40,.075);border-color:#e0e3d7}
+.room-scene{background:#173e33;box-shadow:0 18px 40px rgba(26,50,39,.13)}
+.scene-window{background:linear-gradient(#c4d7c9 0 60%,#839b84 60%)}
+.sun{background:#d8dfb7}.chair{background:#aeb88c}
+.chip.selected{background:#e8eddc;border-color:#cbd5b9;color:#35543e}
+.chip input[type="checkbox"]{accent-color:#244f3e}
+.availability{color:#4c7557;font-weight:600}
+.status{font-weight:600}.status.active{background:#e8eee3;color:#3e6b49}.status.completed{background:#e6ebe5;color:#4a6250}.status.cancelled,.status.inactive{background:#f3e9e4;color:#9a6559}
+.data-table th{background:#f4f5ef;color:#6c7b6e}.data-table tr:hover td{background:#f7f8f2}
+.bar{background:#244f3e;border-radius:5px 5px 1px 1px}
+.bar-group:nth-child(2) .bar{background:#d0b5a4}
+.bar-group:nth-child(3) .bar{background:#a4aaa7}
+.bar-group>b{font-size:12px;color:#2e4938;font-weight:600;font-variant-numeric:tabular-nums}
+.bar-group{color:#6e7c6f;font-size:10px}
+.date-tile{background:#ecf0e3}.date-tile b{font-family:Georgia,'Times New Roman',serif;font-weight:400}
+.space-select-trigger{background:#fdfdf8;border-color:#dce0d3}
+.space-select-menu{background:#fdfdf9;box-shadow:0 10px 30px rgba(24,45,38,.12)}
+.space-select-option[aria-selected=true]{background:#e9eedd;color:#28503b}
+.schedule-segment.is-free,.schedule-legend .free-dot,.schedule-interval.is-free i{background:#d8dfb7}
+.schedule-segment.is-busy,.schedule-legend .busy-dot,.schedule-interval.is-busy i{background:#355a46}
+.schedule-navigation{background:#f0f2e8}
+.booking-success-check{background:#edf0e2}.booking-success-check svg{stroke:#355a46}.booking-success-check circle{stroke:#cdd8b9}
+.success-ticket-top span{background:#e0e7ce;color:#35543e}
+.modal-backdrop{background:rgba(14,33,26,.5)}
+.toast{background:#244c3c}
+/* Matte champagne appears only in small details, never as a shiny surface. */
+.topbar{border-bottom-color:var(--champagne-line)}
+.nav-item.active{box-shadow:inset 2px 0 0 var(--champagne)}
+.sidebar-footer{border-top-color:rgba(205,186,145,.19)}
+.orbit{border-color:rgba(178,156,114,.2)}
+.floating-card,.demo-pill{border-color:var(--champagne-line)}
+.room-image.has-photo .room-badge{border-color:rgba(210,193,157,.56)}
+.stats-grid-completed .stat-card:nth-child(4){border-color:rgba(178,156,114,.4)}
+.room-detail-tags span{border-color:var(--champagne-line)}
+.booking-success-ticket{border-color:rgba(178,156,114,.35)}
+.success-ticket-date{border-top-color:rgba(178,156,114,.4)}
+.booking-success-check circle{stroke:#c3b28b}
+.btn:not(.danger):hover{box-shadow:0 3px 10px rgba(23,63,53,.1),inset 0 0 0 1px rgba(205,186,145,.28)}
+.space-select-trigger[aria-expanded=true]{border-color:#aa9875;box-shadow:0 0 0 3px rgba(178,156,114,.1)}
+.space-select-menu{border-color:rgba(178,156,114,.35)}
+@media(max-width:760px){.hero h1{letter-spacing:-1.6px}.topbar h2{font-size:27px}}
+@media(prefers-reduced-motion:reduce){.room-card-interactive:hover{transform:none}.room-card:hover .room-photo{transform:none}.btn,.role-card{transition:none}}

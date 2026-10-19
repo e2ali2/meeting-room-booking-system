@@ -30,4 +30,7 @@ from sqlalchemy.orm import Session
 
 def get_db():
     with Session(engine) as session:
+        from app.booking_lifecycle import complete_expired_bookings
+
+        complete_expired_bookings(session)
         yield session

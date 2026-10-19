@@ -10,6 +10,16 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/styles.css">
   <link rel="stylesheet" href="/assets/responsive.css">
+  <link rel="stylesheet" href="/assets/room-photos.css?v=20261019">
+  <link rel="stylesheet" href="/assets/selects.css?v=20261019">
+  <link rel="stylesheet" href="/assets/room-details.css?v=20261019">
+  <link rel="stylesheet" href="/assets/room-schedule.css?v=20261019">
+  <link rel="stylesheet" href="/assets/booking-success.css?v=20261019">
+  <link rel="stylesheet" href="/assets/card-motion.css?v=20261019">
+  <link rel="stylesheet" href="/assets/dashboard-stats.css?v=20261019">
+  <link id="premium-theme" rel="stylesheet" href="/assets/premium.css?v=20261019-green-checkboxes">
+  <link rel="stylesheet" href="/assets/landing-spaces.css?v=20261019">
+  <script src="/assets/theme-preview.js?v=20261019"></script>
 </head>
 <body>
   <div id="toast-root" class="toast-root" aria-live="polite"></div>
@@ -18,14 +28,14 @@
 
   <main id="landing" class="landing">
     <nav class="landing-nav">
-      <a class="brand" href="#" aria-label="Space"><span class="brand-mark">S</span><span>space</span></a>
+      <a class="brand" href="/" data-home aria-label="Space — на главную"><span class="brand-mark">S</span><span>space</span></a>
       <span class="demo-pill"><span></span> Demo workspace</span>
     </nav>
     <section class="hero">
       <div class="hero-copy">
         <p class="eyebrow">Всё пространство офиса — в одном месте</p>
         <h1>Встречайтесь.<br><em>Не ищите.</em></h1>
-        <p class="hero-text">Найдите свободную переговорную, пригласите команду и сосредоточьтесь на важном. Space позаботится об остальном.</p>
+        <p class="hero-text">Выберите пространство под вашу встречу, проверьте свободное время и забронируйте в несколько кликов.</p>
         <div class="role-actions">
           <a class="role-card primary" href="/?role=EMPLOYEE" data-login="EMPLOYEE" style="text-decoration:none">
             <span class="role-icon">→</span>
@@ -37,33 +47,43 @@
           </a>
         </div>
         <p class="demo-note">Демонстрационный вход · регистрация не требуется</p>
+        <a class="landing-explore" href="#spaces">Познакомиться с пространствами <span aria-hidden="true">↓</span></a>
       </div>
-      <div class="hero-visual" aria-hidden="true">
-        <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
-        <div class="room-scene">
-          <div class="scene-top"><span>Orion · 5 этаж</span><span class="live-dot">свободна</span></div>
-          <div class="scene-window"><div class="sun"></div><div class="city"></div></div>
-          <div class="scene-table"></div><div class="chair c1"></div><div class="chair c2"></div><div class="chair c3"></div>
-          <div class="scene-bottom"><b>10:00 — 11:00</b><span>8 мест · TV · Видеосвязь</span></div>
-        </div>
-        <div class="floating-card fc-one"><b>4 комнаты</b><span>свободны сейчас</span></div>
+      <div class="hero-photo-visual">
+        <figure class="hero-room-photo">
+          <img src="/assets/rooms/atlas.jpg" alt="Переговорная с деревянным столом и зелёными креслами" fetchpriority="high" width="1000" height="667">
+          <span class="hero-photo-label">ПРОСТРАНСТВО ДЛЯ ВАШИХ ИДЕЙ</span>
+          <figcaption><div><small>ПЕРЕГОВОРНАЯ</small><b id="hero-room-name">Atlas</b></div><span id="hero-room-meta">Встречайтесь с комфортом</span></figcaption>
+        </figure>
+        <div class="hero-photo-note"><span aria-hidden="true">✦</span><div><b>Время для главного.</b><p>Пространство мы уже подготовили.</p></div></div>
       </div>
     </section>
     <section class="trust-row"><span>Моментальный поиск</span><i></i><span>Без конфликтов</span><i></i><span>Умные уведомления</span></section>
+    <section class="landing-spaces" id="spaces" aria-labelledby="spaces-title">
+      <div class="landing-spaces-heading"><div><p class="eyebrow">Наши пространства</p><h2 id="spaces-title">Комнаты с характером.</h2></div><p>Для коротких разговоров<br>и больших совместных планов.</p></div>
+      <div class="landing-room-grid" id="landing-room-grid" aria-live="polite"><p class="landing-rooms-loading">Подбираем пространства для вашей встречи…</p></div>
+      <div class="landing-spaces-bottom"><span id="landing-spaces-count">Выберите комнату, чтобы узнать больше</span><a href="/?role=EMPLOYEE" data-login="EMPLOYEE">Перейти к бронированию <span aria-hidden="true">→</span></a></div>
+    </section>
   </main>
 
   <div id="workspace" class="workspace hidden">
     <aside class="sidebar">
-      <div class="brand sidebar-brand"><span class="brand-mark">S</span><span>space</span></div>
+      <a class="brand sidebar-brand" href="/" data-home aria-label="Space — на главную"><span class="brand-mark">S</span><span>space</span></a>
       <nav id="side-nav"></nav>
       <div class="sidebar-footer"><div id="sidebar-user" class="user-mini"></div><button id="logout" class="icon-button" title="Выйти">↗</button></div>
     </aside>
-    <header class="mobile-header"><button id="menu-toggle" class="icon-button">☰</button><div class="brand"><span class="brand-mark">S</span><span>space</span></div><span id="mobile-avatar" class="avatar">ИП</span></header>
+    <header class="mobile-header"><button id="menu-toggle" class="icon-button">☰</button><a class="brand" href="/" data-home aria-label="Space — на главную"><span class="brand-mark">S</span><span>space</span></a><span id="mobile-avatar" class="avatar">ИП</span></header>
     <section class="content-shell">
       <header class="topbar"><div><p id="page-kicker" class="page-kicker"></p><h2 id="page-title"></h2></div><div id="topbar-actions"></div></header>
       <div id="page-content" class="page-content"></div>
     </section>
   </div>
-  <script src="/assets/app.js?v=20261001-2" defer></script>
+  <script src="/assets/app.js?v=20261019-status-colors" defer></script>
+  <script src="/assets/selects.js?v=20261019" defer></script>
+  <script src="/assets/room-schedule.js?v=20261019" defer></script>
+  <script src="/assets/room-details.js?v=20261019-schedule" defer></script>
+  <script src="/assets/booking-refresh.js?v=20261019" defer></script>
+  <script src="/assets/booking-success.js?v=20261019" defer></script>
+  <script src="/assets/landing-spaces.js?v=20261019" defer></script>
 </body>
 </html>

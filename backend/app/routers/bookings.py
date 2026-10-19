@@ -14,6 +14,7 @@ from app.schemas import CreateBookingRequest, UpdateBookingRequest
 from app.workers.email_worker import send_direct_notification
 
 router = APIRouter(prefix="/api/v1/bookings", tags=["Bookings"])
+MOSCOW_TZ = timezone(timedelta(hours=3), name="Europe/Moscow")
 
 
 def get_current_user(db: Session, x_demo_role: str | None = None) -> User:
@@ -43,7 +44,7 @@ def validate_booking_time(start_time: datetime, end_time: datetime):
             "message": "Booking duration must be between 15 minutes and 4 hours",
         })
 
-    if start_time.date() != end_time.date():
+    if start_time.astimezone(MOSCOW_TZ).date() != end_time.astimezone(MOSCOW_TZ).date():
         raise HTTPException(status_code=400, detail={
             "code": "INVALID_BOOKING_TIME",
             "message": "Booking cannot cross a calendar day",

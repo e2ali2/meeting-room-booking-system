@@ -5,6 +5,23 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/v1/rooms/{room_id}/schedule": {
+      "get": {
+        "tags": ["Rooms"],
+        "summary": "Get Room Schedule",
+        "description": "Occupancy for one Moscow calendar day. Only ACTIVE booking intervals are returned, without personal data. Adjacent intervals use [start, end) semantics.",
+        "operationId": "get_room_schedule_api_v1_rooms__room_id__schedule_get",
+        "parameters": [
+          {"name": "room_id", "in": "path", "required": true, "schema": {"type": "string", "format": "uuid"}},
+          {"name": "date", "in": "query", "required": true, "schema": {"type": "string", "format": "date"}}
+        ],
+        "responses": {
+          "200": {"description": "Daily occupancy", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/RoomSchedule"}}}},
+          "404": {"description": "Room not found"},
+          "422": {"description": "Validation Error", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPValidationError"}}}}
+        }
+      }
+    },
     "/api/v1/health": {
       "get": {
         "summary": "Health Check",
@@ -1396,6 +1413,24 @@
   },
   "components": {
     "schemas": {
+      "BusyInterval": {
+        "type": "object",
+        "properties": {
+          "start_time": {"type": "string", "format": "date-time"},
+          "end_time": {"type": "string", "format": "date-time"}
+        },
+        "required": ["start_time", "end_time"]
+      },
+      "RoomSchedule": {
+        "type": "object",
+        "properties": {
+          "room_id": {"type": "string", "format": "uuid"},
+          "date": {"type": "string", "format": "date"},
+          "timezone": {"type": "string", "examples": ["Europe/Moscow"]},
+          "busy": {"type": "array", "items": {"$ref": "#/components/schemas/BusyInterval"}}
+        },
+        "required": ["room_id", "date", "timezone", "busy"]
+      },
       "CreateBookingRequest": {
         "properties": {
           "room_id": {

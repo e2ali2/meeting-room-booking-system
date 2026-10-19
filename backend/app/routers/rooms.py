@@ -1,13 +1,14 @@
-from datetime import datetime
+from datetime import date, datetime, time, timedelta
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Booking, Equipment, Office, Room, RoomEquipment
-from app.routers.bookings import validate_booking_time
+from app.routers.bookings import MOSCOW_TZ, validate_booking_time
 
 router = APIRouter(prefix="/api/v1/rooms", tags=["Rooms"])
 
@@ -84,3 +85,47 @@ def get_available_rooms(
     query = query.where(Room.room_id.not_in(busy_rooms))
 
     return [room_to_dict(db, room) for room in db.scalars(query).all()]
+
+
+class BusyInterval(BaseModel):
+    start_time: datetime
+    end_time: datetime
+
+
+class RoomSchedule(BaseModel):
+    room_id: UUID
+    date: date
+    timezone: str
+    busy: list[BusyInterval]
+
+
+@router.get("/{room_id}/schedule", response_model=RoomSchedule, responses={404: {"description": "Room not found"}})
+def get_room_schedule(
+    room_id: UUID,
+    booking_date: date = Query(alias="date"),
+    db: Session = Depends(get_db),
+):
+    """Expose occupancy only; never return booking IDs or personal information."""
+    if db.get(Room, room_id) is None:
+        raise HTTPException(status_code=404, detail={"code": "ROOM_NOT_FOUND", "message": "Room not found"})
+    day_start = datetime.combine(booking_date, time.min, tzinfo=MOSCOW_TZ)
+    day_end = day_start + timedelta(days=1)
+    intervals = db.execute(
+        select(Booking.start_time, Booking.end_time)
+        .where(
+            Booking.room_id == room_id,
+            Booking.status == "ACTIVE",
+            Booking.start_time < day_end,
+            Booking.end_time > day_start,
+        )
+        .order_by(Booking.start_time)
+    ).all()
+    return RoomSchedule(
+        room_id=room_id,
+        date=booking_date,
+        timezone="Europe/Moscow",
+        busy=[BusyInterval(
+            start_time=max(start, day_start).astimezone(MOSCOW_TZ),
+            end_time=min(end, day_end).astimezone(MOSCOW_TZ),
+        ) for start, end in intervals],
+    )
