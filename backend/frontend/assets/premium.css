@@ -59,6 +59,7 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .scene-window{background:linear-gradient(#c4d7c9 0 60%,#839b84 60%)}
 .sun{background:#d8dfb7}.chair{background:#aeb88c}
 .chip.selected{background:#e8eddc;border-color:#cbd5b9;color:#35543e}
+.chip input[type="checkbox"]{accent-color:#244f3e}
 .availability{color:#4c7557;font-weight:600}
 .status{font-weight:600}.status.active{background:#e8eee3;color:#3e6b49}.status.completed{background:#e6ebe5;color:#4a6250}.status.cancelled,.status.inactive{background:#f3e9e4;color:#9a6559}
 .data-table th{background:#f4f5ef;color:#6c7b6e}.data-table tr:hover td{background:#f7f8f2}
